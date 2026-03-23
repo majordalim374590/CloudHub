@@ -3247,6 +3247,7 @@ const ADULT_PIN_KEY = 'ch_adult_pin';
 let _adultUnlocked = false; // resets every page load — must re-enter PIN each time
 let _pinBuffer = '';
 let _pinMode = 'unlock'; // 'unlock' | 'set'
+let _adultSearchTimer = null;
 
 const ADULT_SITES = [
   {
@@ -3354,11 +3355,11 @@ function loadAdultPage() {
   const catsEl = document.getElementById('adult-cats');
   if (!area) return;
 
-  catsEl.innerHTML = ['All', 'Popular', 'HD'].map((c,i) =>
+  catsEl.innerHTML = ['Internal Player', 'External Sites'].map((c,i) =>
     `<button class="cat-tab ${i===0?'active':''}" onclick="filterAdultCat('${c}',this)">${c}</button>`
   ).join('');
 
-  renderAdultContent('All');
+  renderAdultContent('Internal Player');
 }
 
 function filterAdultCat(cat, btn) {
@@ -3367,27 +3368,128 @@ function filterAdultCat(cat, btn) {
   renderAdultContent(cat);
 }
 
+function debounceAdultSearch(val) {
+  clearTimeout(_adultSearchTimer);
+  if (!val.trim()) {
+    document.getElementById('adult-search-results').innerHTML = '';
+    return;
+  }
+  _adultSearchTimer = setTimeout(() => runAdultSearch(val), 500);
+}
+
+async function runAdultSearch(query) {
+  const r = document.getElementById('adult-search-results');
+  if (!r) return;
+  r.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    // Using Eporner public API for internal player content
+    const res = await fetch(`https://www.eporner.com/api/v2/video/search/?query=${encodeURIComponent(query)}&per_page=18&thumbsize=big`);
+    const data = await res.json();
+    
+    if (!data?.videos || data.videos.length === 0) {
+      r.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><h2>No results</h2><p>Try another search term</p></div>';
+      return;
+    }
+
+    r.innerHTML = data.videos.map(video => `
+      <div class="card" style="width:100%;" onclick="playAdultVideo('${video.embed}', '${video.title.replace(/'/g, "\\'")}')">
+        <div class="card-img-wrap" style="aspect-ratio:16/9;">
+          <img src="${video.default_thumb.src}" alt="${video.title}" loading="lazy">
+          <div class="badge badge-right badge-hd" style="background:rgba(0,0,0,0.8);color:white;border:none;">
+            ${video.length_min}:${video.length_sec.toString().padStart(2, '0')}
+          </div>
+          <div class="card-hover-overlay">
+            <div class="card-play-btn"><i class="fas fa-play"></i></div>
+          </div>
+        </div>
+        <div style="padding:8px 4px;">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${video.title}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    r.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h2>Error loading content</h2><p>Please try again later</p></div>';
+  }
+}
+
+function playAdultVideo(embedUrl, title) {
+  // Reuse the existing player page logic
+  navigate('player', { type: 'adult_internal', embedUrl, title });
+}
+
 function renderAdultContent(filter) {
   const area = document.getElementById('adult-content-area');
-  let html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
+  let html = '';
 
-  for (const cat of ADULT_SITES) {
-    html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
-    html += `<div class="adult-site-grid">`;
-    for (const s of cat.sites) {
-      html += `
-        <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
-          <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
-          <div class="adult-site-name">${s.name}</div>
-          <div class="adult-site-desc">${s.desc}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
-        </a>`;
+  if (filter === 'Internal Player') {
+    html = `
+      <div style="margin-bottom:24px;">
+        <div class="search-bar-large" style="max-width:600px;margin:0 auto;">
+          <i class="fas fa-search search-icon-abs"></i>
+          <input type="text" placeholder="Search adult content to play internally..." oninput="debounceAdultSearch(this.value)">
+        </div>
+      </div>
+      <div id="adult-search-results" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+        <div class="empty-state" style="grid-column:1/-1;padding:40px 20px;">
+          <i class="fas fa-play-circle"></i>
+          <h2>Internal Player</h2>
+          <p>Search above to find and play videos directly in CloudHub</p>
+        </div>
+      </div>
+    `;
+  } else {
+    html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
+
+    for (const cat of ADULT_SITES) {
+      html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
+      html += `<div class="adult-site-grid">`;
+      for (const s of cat.sites) {
+        html += `
+          <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
+            <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
+            <div class="adult-site-name">${s.name}</div>
+            <div class="adult-site-desc">${s.desc}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
+          </a>`;
+      }
+      html += `</div>`;
     }
-    html += `</div>`;
   }
 
   area.innerHTML = html;
 }
+
+// Override the loadPlayerPage function to handle the new 'adult_internal' type
+const originalLoadPlayerPage = loadPlayerPage;
+loadPlayerPage = async function(params) {
+  if (params.type === 'adult_internal') {
+    const wrapper = document.getElementById('player-wrapper');
+    const infoEl = document.getElementById('player-info');
+    
+    const t = document.getElementById('player-top-title');
+    const m = document.getElementById('player-top-meta');
+    if (t) t.textContent = params.title;
+    if (m) m.textContent = 'Internal Player';
+
+    const old = wrapper.querySelector('iframe, video');
+    if (old) old.remove();
+    
+    wrapper.innerHTML += `<iframe src="${params.embedUrl}" allowfullscreen allow="autoplay; fullscreen" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+
+    infoEl.innerHTML = `
+      <div class="player-title">${params.title}</div>
+      <div class="player-meta"><span style="color:var(--red);font-weight:bold;">18+</span> · Internal Player</div>
+      <div class="player-actions">
+        <button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>
+    `;
+    return;
+  }
+  
+  // Call original for everything else
+  return originalLoadPlayerPage(params);
+};
 
 // ─── INIT ───
 loadHome();
