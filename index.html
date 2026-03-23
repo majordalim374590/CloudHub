@@ -1524,6 +1524,16 @@ body {
   </div>
 
   <div class="settings-section">
+    <div class="settings-label">Default Audio / Dub Language</div>
+    <select class="settings-select" id="s-lang-pref" onchange="APP.settings.preferredLang=this.value;APP.playerLang=this.value;localStorage.setItem('ch_settings',JSON.stringify(APP.settings));showToast('Language preference saved')">
+      <option value="original">🎬 Original Language</option>
+      <option value="hindi">🇮🇳 Hindi Dubbed</option>
+      <option value="english">🇬🇧 English Dubbed</option>
+    </select>
+    <p style="font-size:11px;color:var(--text3);margin-top:6px;">You can also change language anytime in the player using the 🌐 button</p>
+  </div>
+
+  <div class="settings-section">
     <div class="settings-label">Default Subtitle Language</div>
     <select class="settings-select" id="s-sub-lang">
       <option value="off">Off</option>
@@ -1599,8 +1609,18 @@ body {
       <div class="pin-dot" id="d3"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 16px;">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => `
-        <button class="pin-key" onclick="pinKey('${k}')">${k}</button>`).join('')}
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" style="cursor:default;background:transparent;border-color:transparent;"></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" onclick="pinKey('⌫')">⌫</button>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-grey btn-sm" style="flex:1;" onclick="closeAdultPin()">Cancel</button>
@@ -1654,7 +1674,8 @@ APP.settings = Object.assign({
   animePref: 'sub',
   autoplay: true,
   hd: true,
-  sourcePrio: 'vidsrc'
+  sourcePrio: 'vidsrc',
+  preferredLang: 'original'
 }, APP.settings);
 
 // ─── ROUTING ───
@@ -2446,63 +2467,95 @@ function toggleDesc() {
   }
 }
 
-// ─── LANGUAGE PICKER ───
+// ─── PLAYER LANGUAGE PREFERENCE ───
+// Stored per-session; user can change via the 🌐 button in the player
+// No popup ever — language is chosen from the player controls like Netflix subtitles
 function openPlayer(id, type, season = 1, episode = 1) {
-  // Anime and live don't need language picker
+  const lang = APP.playerLang || APP.settings.preferredLang || 'original';
   if (type === 'anime' || type === 'live') {
     navigate('player', { id, type, season, episode });
     return;
   }
-  showLanguagePicker(id, type, season, episode);
+  navigate('player', { id, type, season, episode, lang });
 }
 
-function showLanguagePicker(id, type, season, episode) {
-  const existing = document.getElementById('lang-picker-overlay');
-  if (existing) existing.remove();
+// ─── LANGUAGE SWITCHER (Netflix-style — in player controls, not a popup) ───
+function showLangMenu(id, type, season, episode, currentLang) {
+  const existing = document.getElementById('lang-menu-dropdown');
+  if (existing) { existing.remove(); return; }
 
-  const overlay = document.createElement('div');
-  overlay.id = 'lang-picker-overlay';
-  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;`;
-  overlay.innerHTML = `
-    <div style="background:var(--surface);border-radius:12px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.08);">
-      <div style="text-align:center;margin-bottom:20px;">
-        <div style="font-size:28px;margin-bottom:8px;">🌐</div>
-        <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Choose Language</h3>
-        <p style="font-size:13px;color:var(--text2);">Select your preferred audio/dub language</p>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <button onclick="pickLangAndPlay('${id}','${type}','${season}','${episode}','original')" style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:14px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
-          <span style="font-size:22px;">🎬</span>
-          <div style="text-align:left;">
-            <div>Original Language</div>
-            <div style="font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">Native / Original audio track</div>
-          </div>
-        </button>
-        <button onclick="pickLangAndPlay('${id}','${type}','${season}','${episode}','hindi')" style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:14px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;" onmouseover="this.style.borderColor='#FF6D00'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
-          <span style="font-size:22px;">🇮🇳</span>
-          <div style="text-align:left;">
-            <div>हिंदी (Hindi)</div>
-            <div style="font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">Hindi dubbed version</div>
-          </div>
-        </button>
-        <button onclick="pickLangAndPlay('${id}','${type}','${season}','${episode}','english')" style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:14px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;" onmouseover="this.style.borderColor='#1565C0'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
-          <span style="font-size:22px;">🇬🇧</span>
-          <div style="text-align:left;">
-            <div>English</div>
-            <div style="font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">English dubbed / audio track</div>
-          </div>
-        </button>
-      </div>
-      <button onclick="document.getElementById('lang-picker-overlay').remove()" style="margin-top:16px;width:100%;background:transparent;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:8px;font-family:inherit;">✕ Cancel</button>
-    </div>`;
-  document.body.appendChild(overlay);
+  const langs = [
+    { key: 'original', label: 'Original Language', flag: '🎬', sub: 'Native audio track' },
+    { key: 'hindi',    label: 'हिंदी (Hindi)',     flag: '🇮🇳', sub: 'Hindi dubbed version' },
+    { key: 'english',  label: 'English',            flag: '🇬🇧', sub: 'English dubbed / audio track' },
+  ];
+
+  const menu = document.createElement('div');
+  menu.id = 'lang-menu-dropdown';
+  menu.style.cssText = `position:absolute;bottom:100%;right:0;margin-bottom:8px;background:var(--surface);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:8px;min-width:260px;box-shadow:0 12px 40px rgba(0,0,0,0.8);z-index:100;animation:fadeIn 0.15s ease;`;
+  menu.innerHTML = `
+    <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:4px 8px 8px;">Audio / Dub Language</div>
+    ${langs.map(l => `
+      <button onclick="switchPlayerLang('${id}','${type}','${season}','${episode}','${l.key}',this)" style="display:flex;align-items:center;gap:12px;width:100%;background:${l.key===currentLang?'rgba(229,9,20,0.15)':'transparent'};border:1px solid ${l.key===currentLang?'rgba(229,9,20,0.4)':'transparent'};color:var(--text);padding:10px 12px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;margin-bottom:4px;" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='${l.key===currentLang?'rgba(229,9,20,0.15)':'transparent'}'">
+        <span style="font-size:18px;">${l.flag}</span>
+        <div style="text-align:left;">
+          <div>${l.label} ${l.key===currentLang?'<span style="font-size:10px;color:var(--red);font-weight:700;margin-left:4px;">✓ Active</span>':''}</div>
+          <div style="font-size:11px;color:var(--text2);font-weight:400;">${l.sub}</div>
+        </div>
+      </button>`).join('')}
+    <p style="font-size:10px;color:var(--text3);padding:6px 8px 2px;margin:0;">Languages only appear when available for this title</p>
+  `;
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function closeLang(e) {
+      if (!menu.contains(e.target) && e.target.id !== 'lang-toggle-btn') {
+        menu.remove();
+        document.removeEventListener('click', closeLang);
+      }
+    });
+  }, 50);
+
+  // Attach to the lang button's parent
+  const btn = document.getElementById('lang-toggle-btn');
+  if (btn) {
+    btn.parentElement.style.position = 'relative';
+    btn.parentElement.appendChild(menu);
+  }
 }
 
-function pickLangAndPlay(id, type, season, episode, lang) {
-  const overlay = document.getElementById('lang-picker-overlay');
-  if (overlay) overlay.remove();
+function switchPlayerLang(id, type, season, episode, lang, triggerEl) {
+  const menu = document.getElementById('lang-menu-dropdown');
+  if (menu) menu.remove();
   APP.playerLang = lang;
-  navigate('player', { id, type, season: parseInt(season), episode: parseInt(episode), lang });
+  APP.settings.preferredLang = lang;
+  localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
+
+  // Reload the current iframe with new language
+  const sourcePrio = APP.settings.sourcePrio || 'vidsrcme';
+  const wrapper = document.getElementById('player-wrapper');
+  const old = wrapper.querySelector('iframe, video');
+  if (old) old.remove();
+  const iframe = document.createElement('iframe');
+  iframe.src = getEmbedUrl(id, type, season, episode, sourcePrio, lang);
+  iframe.allowFullscreen = true;
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+  iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+  iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
+  wrapper.appendChild(iframe);
+
+  const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English' };
+  showToast(`Audio: ${langLabels[lang] || lang}`);
+
+  // Update active source button label to reflect current lang
+  const langBtn = document.getElementById('lang-toggle-btn');
+  if (langBtn) langBtn.innerHTML = `<i class="fas fa-language"></i> ${langLabels[lang]||lang}`;
+
+  // Update source panel's onclick to use new lang
+  document.querySelectorAll('.source-btn[data-source]').forEach(b => {
+    const src = b.getAttribute('data-source');
+    b.onclick = () => switchSource(id, type, season, episode, src, b, lang);
+  });
 }
 
 function playAnimeEpisode(epId, title, animeId) {
@@ -2612,12 +2665,20 @@ async function loadPlayerPage(params) {
       { key: 'moviesapi',    label: 'MoviesAPI' },
       { key: 'nontongo',     label: 'NontonGo' },
     ];
-    const langLabel = lang === 'hindi' ? ' 🇮🇳 Hindi' : lang === 'english' ? ' 🇬🇧 English' : ' 🎬 Original';
+    const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English' };
+    const currentLangLabel = langLabels[lang || 'original'] || '🎬 Original';
     return `
+      <div class="player-actions" style="margin-top:4px;">
+        <div style="position:relative;display:inline-block;">
+          <button id="lang-toggle-btn" class="btn btn-grey btn-sm" onclick="showLangMenu('${id}','${type}','${season}','${episode}','${lang||'original'}')">
+            <i class="fas fa-language"></i> ${currentLangLabel}
+          </button>
+        </div>
+      </div>
       <div class="source-switcher">
-        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source — try another if buffering &nbsp;<span style="font-size:11px;color:var(--amber);">${langLabel}</span></div>
+        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source — try another if buffering</div>
         <div class="source-btns">
-          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" onclick="switchSource('${id}','${type}','${season}','${episode}','${s.key}',this,'${lang||'original'}')">${s.label}</button>`).join('')}
+          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" data-source="${s.key}" onclick="switchSource('${id}','${type}','${season}','${episode}','${s.key}',this,'${lang||'original'}')">${s.label}</button>`).join('')}
         </div>
       </div>`;
   }
@@ -2735,7 +2796,7 @@ function getEmbedUrl(id, type, season, episode, source, lang = 'original') {
 }
 
 function buildIframe(url) {
-  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer-when-downgrade" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
 }
 
 function buildEmbedPlayer(id, type, season, episode, source = 'vidsrcme') {
@@ -2751,9 +2812,8 @@ function switchSource(id, type, season, episode, source, btn, lang = 'original')
   const iframe = document.createElement('iframe');
   iframe.src = getEmbedUrl(id, type, season, episode, source, lang);
   iframe.allowFullscreen = true;
-  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-  iframe.setAttribute('referrerpolicy', 'origin');
-  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+  iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
   wrapper.appendChild(iframe);
   showToast(`▶ Switched to ${btn.textContent}`);
@@ -2768,9 +2828,8 @@ function switchAnimeSource(url, btn) {
   const iframe = document.createElement('iframe');
   iframe.src = url;
   iframe.allowFullscreen = true;
-  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-  iframe.setAttribute('referrerpolicy', 'origin');
-  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+  iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
   wrapper.appendChild(iframe);
   showToast(`▶ Switched to ${btn.textContent}`);
@@ -3010,6 +3069,7 @@ function openSettings() {
   document.getElementById('s-tmdb-key').value = APP.tmdbKey;
   document.getElementById('s-sub-lang').value = APP.settings.subLang;
   document.getElementById('s-source-prio').value = APP.settings.sourcePrio || 'vidsrcme';
+  document.getElementById('s-lang-pref').value = APP.settings.preferredLang || 'original';
   document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay !== false);
   document.getElementById('s-adult').classList.toggle('on', !!APP.settings.adult18);
   setAnimePref(APP.settings.animePref || 'sub', true);
@@ -3184,7 +3244,7 @@ document.head.appendChild(manifestLink);
 
 // ─── ADULT CONTENT (PIN PROTECTED) ───
 const ADULT_PIN_KEY = 'ch_adult_pin';
-const ADULT_UNLOCKED_KEY = 'ch_adult_unlocked';
+let _adultUnlocked = false; // resets every page load — must re-enter PIN each time
 let _pinBuffer = '';
 let _pinMode = 'unlock'; // 'unlock' | 'set'
 
@@ -3198,15 +3258,23 @@ const ADULT_SITES = [
       { name: 'SpankBang', icon: '⚡', color: '#1a1a1a', border: '#e44', desc: 'HD adult content', url: 'https://spankbang.com' },
     ]
   },
+  {
+    cat: '🇯🇵 Hentai & Anime Adult',
+    sites: [
+      { name: 'HentaiHaven', icon: '🌸', color: '#1a1a1a', border: '#e91e8c', desc: 'Hentai streaming', url: 'https://hentaihaven.xxx' },
+      { name: 'HHentai', icon: '🎌', color: '#1a1a1a', border: '#9c27b0', desc: 'HD hentai videos', url: 'https://hhentai.net' },
+      { name: 'Hanime.tv', icon: '💮', color: '#1a1a1a', border: '#e91e63', desc: 'Premium hentai streaming', url: 'https://hanime.tv' },
+      { name: 'HentaiFF', icon: '🌺', color: '#1a1a1a', border: '#ff4081', desc: 'Free hentai collection', url: 'https://hentaiff.com' },
+    ]
+  },
 ];
 
 function openAdultPage() {
   const stored = localStorage.getItem(ADULT_PIN_KEY);
-  const unlocked = sessionStorage.getItem(ADULT_UNLOCKED_KEY);
   if (!stored) {
     _pinMode = 'set';
     showAdultPinModal('Set a PIN', 'Create a 4-digit PIN to protect this section', 'Set PIN');
-  } else if (!unlocked) {
+  } else if (!_adultUnlocked) {
     _pinMode = 'unlock';
     showAdultPinModal('Enter PIN 🔐', 'Enter your PIN to access adult content', 'Unlock');
   } else {
@@ -3251,13 +3319,13 @@ function confirmAdultPin() {
   const stored = localStorage.getItem(ADULT_PIN_KEY);
   if (_pinMode === 'set') {
     localStorage.setItem(ADULT_PIN_KEY, _pinBuffer);
-    sessionStorage.setItem(ADULT_UNLOCKED_KEY, '1');
+    _adultUnlocked = true;
     closeAdultPin();
     showToast('🔐 PIN set! Section unlocked.');
     navigate('adult18');
   } else {
     if (_pinBuffer === stored) {
-      sessionStorage.setItem(ADULT_UNLOCKED_KEY, '1');
+      _adultUnlocked = true;
       closeAdultPin();
       navigate('adult18');
     } else {
@@ -3270,13 +3338,13 @@ function confirmAdultPin() {
 
 function resetAdultPin() {
   localStorage.removeItem(ADULT_PIN_KEY);
-  sessionStorage.removeItem(ADULT_UNLOCKED_KEY);
+  _adultUnlocked = false;
   closeAdultPin();
   showToast('PIN reset. Set a new one next time.');
 }
 
 function lockAdultPage() {
-  sessionStorage.removeItem(ADULT_UNLOCKED_KEY);
+  _adultUnlocked = false;
   navigate('home');
   showToast('🔒 Section locked');
 }
