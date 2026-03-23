@@ -1,0 +1,2718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="CloudHub — Stream Everything">
+<meta property="og:description" content="Movies, Series, Anime, Live TV — all free">
+<meta property="og:image" content="https://placehold.co/1200x630/0A0A0A/E50914?text=CloudHub">
+<title>CloudHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
+
+<style>
+:root {
+  --bg: #0A0A0A;
+  --surface: #141414;
+  --surface2: #1A1A1A;
+  --surface3: #222222;
+  --red: #E50914;
+  --red-dark: #B20710;
+  --amber: #F5A623;
+  --text: #FFFFFF;
+  --text2: #B3B3B3;
+  --text3: #666666;
+  --radius: 6px;
+  --nav-h: 68px;
+  --bottom-nav-h: 60px;
+  --transition: all 0.2s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* ── LOGO ── */
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  color: var(--red);
+  font-size: 28px;
+  letter-spacing: 2px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ── NAVBAR ── */
+#navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  padding: 0 4%;
+  gap: 32px;
+  transition: background 0.3s ease;
+}
+#navbar.scrolled { background: rgba(10,10,10,0.97); backdrop-filter: blur(8px); }
+#navbar.hero-top { background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%); }
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--text); }
+
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#search-expand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  max-width: 36px;
+  transition: max-width 0.3s ease;
+}
+#search-expand.open { max-width: 220px; }
+#search-expand input {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 3px;
+  width: 180px;
+  outline: none;
+  font-family: inherit;
+}
+#search-expand input::placeholder { color: var(--text3); }
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px;
+  transition: var(--transition);
+  border-radius: 4px;
+}
+.icon-btn:hover { color: var(--text); }
+
+/* Profile avatar */
+.profile-btn {
+  width: 32px; height: 32px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--red), #ff6b6b);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer;
+  border: none;
+  color: white;
+  transition: var(--transition);
+}
+.profile-btn:hover { transform: scale(1.05); }
+
+/* ── BOTTOM NAV (mobile) ── */
+#bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: var(--bottom-nav-h);
+  background: rgba(10,10,10,0.98);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: var(--transition);
+  border: none;
+  background: none;
+  color: var(--text3);
+}
+.bottom-tab.active { color: var(--red); }
+.bottom-tab i { font-size: 18px; }
+.bottom-tab span { font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-family: inherit; }
+
+/* ── MAIN CONTENT ── */
+#app {
+  min-height: 100vh;
+  padding-top: var(--nav-h);
+}
+
+/* ── HERO ── */
+#hero {
+  position: relative;
+  width: 100%;
+  height: 85vh;
+  min-height: 500px;
+  overflow: hidden;
+  margin-top: calc(-1 * var(--nav-h));
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.hero-slide.active { opacity: 1; }
+
+.hero-bg {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.hero-bg-div {
+  width: 100%; height: 100%;
+  background-size: cover;
+  background-position: center top;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10,10,10,0.95) 0%,
+    rgba(10,10,10,0.6) 50%,
+    rgba(10,10,10,0.1) 100%
+  ), linear-gradient(
+    to top,
+    rgba(10,10,10,1) 0%,
+    rgba(10,10,10,0.3) 30%,
+    transparent 60%
+  );
+}
+
+.hero-content {
+  position: absolute;
+  bottom: 20%;
+  left: 4%;
+  max-width: 500px;
+  z-index: 2;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(229,9,20,0.2);
+  border: 1px solid rgba(229,9,20,0.4);
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 12px;
+}
+
+.hero-title {
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  margin-bottom: 12px;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.hero-meta .rating { color: #46d369; font-weight: 700; }
+.hero-meta .year { color: var(--text2); }
+.hero-genres { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.genre-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 3px;
+  color: var(--text2);
+}
+
+.hero-desc {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 22px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  text-decoration: none;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn-red {
+  background: var(--red);
+  color: white;
+}
+.btn-red:hover { background: #ff1a27; transform: scale(1.03); }
+.btn-grey {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.btn-grey:hover { background: rgba(255,255,255,0.25); }
+
+.hero-dots {
+  position: absolute;
+  bottom: 12%;
+  left: 4%;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.hero-dot {
+  width: 24px; height: 3px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.hero-dot.active { background: var(--red); width: 36px; }
+
+/* ── ROWS ── */
+.rows-container {
+  padding: 0 4% 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.row-section { margin-bottom: 40px; }
+
+.row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.row-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.row-title .icon { margin-right: 8px; }
+.see-all {
+  font-size: 12px;
+  color: var(--red);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.see-all:hover { color: #ff4d57; }
+
+.row-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 10px 0 16px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.row-scroll::-webkit-scrollbar { display: none; }
+
+/* ── CARDS ── */
+.card {
+  flex-shrink: 0;
+  width: 160px;
+  scroll-snap-align: start;
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform;
+  transform: translateZ(0);
+  background: var(--surface);
+}
+.card:hover {
+  transform: scale(1.08) translateZ(0);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  z-index: 10;
+}
+
+.card-img-wrap {
+  width: 100%;
+  aspect-ratio: 2/3;
+  overflow: hidden;
+  background: var(--surface2);
+  position: relative;
+}
+.card-img-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+.card:hover .card-img-wrap img { transform: scale(1.05); }
+
+.card-skeleton {
+  width: 100%;
+  aspect-ratio: 2/3;
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius);
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.card-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+}
+.card:hover .card-hover-overlay { opacity: 1; }
+
+.card-hover-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-hover-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-hover-rating {
+  font-size: 11px;
+  color: #46d369;
+  font-weight: 700;
+}
+.card-play-btn {
+  width: 30px; height: 30px;
+  background: var(--red);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: white;
+  margin-bottom: 6px;
+  align-self: flex-end;
+}
+
+/* Badges */
+.badge {
+  position: absolute;
+  top: 6px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  z-index: 2;
+}
+.badge-left { left: 6px; }
+.badge-right { right: 6px; }
+.badge-dub { background: #1565C0; color: white; }
+.badge-sub { background: #F57F17; color: white; }
+.badge-hindi { background: #FF6D00; color: white; }
+.badge-hd { background: rgba(0,0,0,0.7); color: #aaa; border: 1px solid #444; }
+.badge-live {
+  background: var(--red);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-live::before {
+  content: '';
+  width: 5px; height: 5px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse-dot 1.2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* Progress bar on card */
+.card-progress {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.2);
+}
+.card-progress-fill {
+  height: 100%;
+  background: var(--red);
+  border-radius: 2px;
+}
+
+/* ── CONTENT GRID (browse pages) ── */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 0 4% 80px;
+}
+
+/* ── SEARCH PAGE ── */
+#search-page {
+  padding: 20px 4% 80px;
+}
+.search-bar-large {
+  position: relative;
+  margin-bottom: 24px;
+}
+.search-bar-large input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 14px 50px 14px 48px;
+  font-size: 16px;
+  outline: none;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.search-bar-large input:focus { border-color: rgba(255,255,255,0.3); }
+.search-bar-large .search-icon-abs {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  font-size: 16px;
+}
+.search-bar-large .clear-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%; transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--text3); cursor: pointer;
+  font-size: 14px; padding: 4px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.filter-tabs::-webkit-scrollbar { display: none; }
+.filter-tab {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.filter-tab.active, .filter-tab:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: white;
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  padding: 24px 4% 20px;
+}
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.page-header p { color: var(--text2); font-size: 14px; }
+
+/* ── DETAIL PAGE ── */
+#detail-page {
+  padding-bottom: 80px;
+}
+.detail-backdrop {
+  position: relative;
+  width: 100%;
+  height: 55vh;
+  overflow: hidden;
+}
+.detail-backdrop-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  filter: brightness(0.4);
+}
+.detail-backdrop-img-div {
+  width: 100%; height: 100%;
+  background-size: cover;
+  background-position: center top;
+  filter: brightness(0.4);
+}
+.detail-backdrop-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 30%, var(--bg) 100%);
+}
+
+.detail-content {
+  position: relative;
+  padding: 0 4%;
+  margin-top: -180px;
+  z-index: 2;
+  display: flex;
+  gap: 28px;
+  align-items: flex-end;
+}
+.detail-poster {
+  flex-shrink: 0;
+  width: 160px;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+.detail-poster img { width: 100%; display: block; }
+.detail-info { flex: 1; min-width: 0; }
+.detail-title {
+  font-size: clamp(22px, 4vw, 42px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+.detail-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.detail-rating { color: #46d369; font-weight: 700; }
+.detail-desc {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.65;
+  margin-bottom: 20px;
+  max-width: 640px;
+}
+.detail-desc.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.read-more {
+  color: var(--red);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+}
+.detail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+
+.btn-sm {
+  padding: 8px 18px;
+  font-size: 13px;
+  gap: 6px;
+}
+
+/* Season/Episode selector */
+.season-selector {
+  margin-bottom: 20px;
+}
+.season-selector select {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.dub-sub-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.dub-sub-btn {
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  transition: var(--transition);
+  font-family: inherit;
+  letter-spacing: 0.5px;
+}
+.dub-sub-btn.active { background: var(--red); color: white; }
+
+.episodes-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.episode-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.episode-item:hover, .episode-item.active {
+  background: var(--surface3);
+  border-color: rgba(229,9,20,0.3);
+}
+.ep-thumb {
+  width: 120px;
+  height: 68px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+.ep-info { flex: 1; min-width: 0; }
+.ep-num { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 3px; }
+.ep-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ep-desc { font-size: 12px; color: var(--text2); margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ep-duration { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+
+/* ── PLAYER PAGE ── */
+#player-page {
+  background: #000;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.player-wrapper {
+  position: relative;
+  width: 100%;
+  background: #000;
+  flex-shrink: 0;
+}
+.player-wrapper iframe,
+.player-wrapper video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: none;
+  display: block;
+}
+
+.player-info-panel {
+  padding: 20px 4%;
+  background: var(--bg);
+  flex: 1;
+}
+.player-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.player-meta { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.player-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+.source-switcher {
+  margin-top: 16px;
+}
+.source-switcher h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text2); }
+.source-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.source-btn {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: var(--text2);
+  transition: var(--transition);
+  font-family: inherit;
+}
+.source-btn.active { background: var(--red); border-color: var(--red); color: white; }
+.source-btn:hover { border-color: rgba(255,255,255,0.35); color: white; }
+
+/* ── LIVE TV ── */
+.live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 0 4% 80px;
+}
+.live-card {
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.live-card:hover { transform: translateY(-4px); border-color: rgba(229,9,20,0.3); }
+.live-card-img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+.live-card-body { padding: 10px 12px; }
+.live-card-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.live-card-cat { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── HISTORY / DOWNLOADS ── */
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  padding: 0 4% 80px;
+}
+.history-card {
+  background: var(--surface);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+.history-card:hover { transform: translateY(-4px); }
+.history-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+.history-card-body { padding: 8px 10px; }
+.history-card-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.history-card-date { font-size: 11px; color: var(--text3); }
+.history-progress { height: 3px; background: rgba(255,255,255,0.1); margin-top: 6px; border-radius: 2px; }
+.history-progress-fill { height: 100%; background: var(--red); border-radius: 2px; }
+.history-remove {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 24px; height: 24px;
+  background: rgba(0,0,0,0.7);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  border: none; color: white; cursor: pointer;
+  opacity: 0; transition: var(--transition);
+}
+.history-card:hover .history-remove { opacity: 1; }
+
+/* ── SETTINGS DRAWER ── */
+#settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.7);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#settings-overlay.open { opacity: 1; pointer-events: all; }
+
+#settings-drawer {
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: 340px;
+  background: var(--surface);
+  z-index: 2001;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  padding: 24px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+#settings-drawer.open { transform: translateX(0); }
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.settings-header h2 { font-size: 20px; font-weight: 700; }
+.settings-section { margin-bottom: 24px; }
+.settings-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.settings-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.settings-input:focus { border-color: rgba(229,9,20,0.5); }
+.settings-select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.settings-toggle:last-child { border-bottom: none; }
+.settings-toggle span { font-size: 14px; color: var(--text2); }
+.toggle-switch {
+  width: 40px; height: 22px;
+  background: var(--surface3);
+  border-radius: 11px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+}
+.toggle-switch.on { background: var(--red); }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: var(--transition);
+}
+.toggle-switch.on::after { left: 21px; }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(229,9,20,0.5);
+  color: var(--red);
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  font-weight: 600;
+}
+.btn-danger:hover { background: rgba(229,9,20,0.1); }
+
+/* ── API KEY BANNER ── */
+#api-banner {
+  background: linear-gradient(135deg, rgba(229,9,20,0.15), rgba(229,9,20,0.05));
+  border: 1px solid rgba(229,9,20,0.3);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 16px 4%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#api-banner p { font-size: 13px; color: var(--text2); flex: 1; }
+#api-banner a { color: var(--red); text-decoration: none; font-weight: 600; font-size: 12px; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text2);
+}
+.empty-state i { font-size: 48px; color: var(--text3); margin-bottom: 16px; }
+.empty-state h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.empty-state p { font-size: 14px; }
+
+/* ── OFFLINE BANNER ── */
+#offline-banner {
+  background: rgba(245,166,35,0.15);
+  border-bottom: 1px solid rgba(245,166,35,0.3);
+  padding: 10px 4%;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--amber);
+}
+#offline-banner.show { display: flex; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.open .modal { transform: scale(1); }
+.modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+.modal p { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(30,30,30,0.97);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.25s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  :root { --nav-h: 56px; }
+  
+  #bottom-nav { display: flex; }
+  #app { padding-bottom: var(--bottom-nav-h); }
+  
+  .nav-links { display: none; }
+  #navbar { padding: 0 4%; gap: 16px; }
+  
+  #hero { height: 60vh; }
+  .hero-content { bottom: 18%; max-width: 85%; }
+  .hero-title { font-size: 28px; }
+  .hero-desc { display: none; }
+  
+  .card { width: 120px; }
+  
+  .detail-content { flex-direction: column; align-items: flex-start; margin-top: -100px; }
+  .detail-poster { width: 100px; }
+  
+  .live-grid { grid-template-columns: repeat(2, 1fr); }
+  
+  #settings-drawer { width: 100%; }
+  
+  .ep-thumb { width: 80px; height: 48px; }
+  
+  #toast { bottom: calc(var(--bottom-nav-h) + 16px); }
+}
+
+@media (max-width: 480px) {
+  .content-grid { grid-template-columns: repeat(2, 1fr); }
+  .history-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── ANIMATIONS ── */
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.3s ease; }
+
+/* Loading spinner */
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 40px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Category row tabs */
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 4% 4px;
+}
+.category-tabs::-webkit-scrollbar { display: none; }
+.cat-tab {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.cat-tab.active, .cat-tab:hover { background: var(--red); border-color: var(--red); color: white; }
+
+/* Watchlist added icon */
+.watchlist-icon.added { color: var(--red) !important; }
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner">
+  <i class="fas fa-wifi-slash"></i>
+  <span>You're offline — showing downloaded content only</span>
+</div>
+
+<!-- NAVBAR -->
+<nav id="navbar" class="hero-top">
+  <span class="logo" onclick="navigate('home')">CLOUDHUB</span>
+  <ul class="nav-links">
+    <li><a href="#" onclick="navigate('home')" data-page="home">Home</a></li>
+    <li><a href="#" onclick="navigate('movies')" data-page="movies">Movies</a></li>
+    <li><a href="#" onclick="navigate('series')" data-page="series">Series</a></li>
+    <li><a href="#" onclick="navigate('anime')" data-page="anime">Anime</a></li>
+    <li><a href="#" onclick="navigate('live')" data-page="live">Live TV</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="search-wrap">
+      <div id="search-expand">
+        <button class="icon-btn" onclick="toggleSearch()"><i class="fas fa-search"></i></button>
+        <input type="text" id="nav-search" placeholder="Search titles…" oninput="debounceSearch(this.value)">
+      </div>
+    </div>
+    <button class="icon-btn" onclick="navigate('history')" title="History"><i class="fas fa-history"></i></button>
+    <button class="icon-btn" onclick="navigate('downloads')" title="Downloads"><i class="fas fa-download"></i></button>
+    <button class="icon-btn" onclick="openSettings()" title="Settings"><i class="fas fa-cog"></i></button>
+    <button class="profile-btn">U</button>
+  </div>
+</nav>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav id="bottom-nav">
+  <button class="bottom-tab active" onclick="navigate('home')" data-tab="home">
+    <i class="fas fa-home"></i><span>Home</span>
+  </button>
+  <button class="bottom-tab" onclick="navigate('search')" data-tab="search">
+    <i class="fas fa-search"></i><span>Search</span>
+  </button>
+  <button class="bottom-tab" onclick="navigate('anime')" data-tab="anime">
+    <i class="fas fa-dragon"></i><span>Anime</span>
+  </button>
+  <button class="bottom-tab" onclick="navigate('live')" data-tab="live">
+    <i class="fas fa-broadcast-tower"></i><span>Live TV</span>
+  </button>
+  <button class="bottom-tab" onclick="navigate('history')" data-tab="history">
+    <i class="fas fa-history"></i><span>History</span>
+  </button>
+</nav>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- HOME PAGE -->
+  <div id="page-home" class="page active">
+    <div id="hero"><!-- Hero slides injected --></div>
+    <div class="rows-container" id="home-rows">
+      <!-- Rows injected by JS -->
+    </div>
+  </div>
+
+  <!-- MOVIES PAGE -->
+  <div id="page-movies" class="page">
+    <div class="page-header">
+      <h1>🎬 Movies</h1>
+      <p>Explore popular, top rated, and now playing</p>
+    </div>
+    <div class="category-tabs" id="movies-cats"></div>
+    <div class="content-grid" id="movies-grid"></div>
+  </div>
+
+  <!-- SERIES PAGE -->
+  <div id="page-series" class="page">
+    <div class="page-header">
+      <h1>📺 TV Series</h1>
+      <p>Binge-worthy shows from around the world</p>
+    </div>
+    <div class="category-tabs" id="series-cats"></div>
+    <div class="content-grid" id="series-grid"></div>
+  </div>
+
+  <!-- ANIME PAGE -->
+  <div id="page-anime" class="page">
+    <div class="page-header">
+      <h1>🇯🇵 Anime</h1>
+      <p>Trending, seasonal, and all-time classics</p>
+    </div>
+    <div class="category-tabs" id="anime-cats"></div>
+    <div class="content-grid" id="anime-grid"></div>
+  </div>
+
+  <!-- LIVE TV PAGE -->
+  <div id="page-live" class="page">
+    <div class="page-header">
+      <h1>📡 Live TV</h1>
+      <p>Free live channels — news, entertainment, sports, cartoons</p>
+    </div>
+    <div class="live-grid" id="live-grid"></div>
+  </div>
+
+  <!-- SEARCH PAGE -->
+  <div id="page-search" class="page">
+    <div id="search-page">
+      <div class="search-bar-large">
+        <i class="fas fa-search search-icon-abs"></i>
+        <input type="text" id="search-input" placeholder="Search movies, series, anime…" oninput="debounceSearch(this.value)" autofocus>
+        <button class="clear-btn" onclick="clearSearch()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="filter-tabs" id="filter-tabs">
+        <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-tab" onclick="setFilter('movie',this)">Movies</button>
+        <button class="filter-tab" onclick="setFilter('tv',this)">Series</button>
+        <button class="filter-tab" onclick="setFilter('anime',this)">Anime</button>
+      </div>
+      <div id="search-results" class="content-grid"></div>
+      <div id="search-empty" class="empty-state" style="display:none;">
+        <i class="fas fa-search"></i>
+        <h2>Start searching</h2>
+        <p>Find movies, series, and anime</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PAGE -->
+  <div id="page-detail" class="page">
+    <div id="detail-page"></div>
+  </div>
+
+  <!-- PLAYER PAGE -->
+  <div id="page-player" class="page">
+    <div id="player-page">
+      <div class="player-wrapper" id="player-wrapper"></div>
+      <div class="player-info-panel" id="player-info"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div id="page-history" class="page">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div><h1>🕐 Watch History</h1><p>Your recently watched content</p></div>
+      <button class="btn btn-grey btn-sm" onclick="confirmClearHistory()"><i class="fas fa-trash"></i> Clear All</button>
+    </div>
+    <div class="history-grid" id="history-grid"></div>
+  </div>
+
+  <!-- DOWNLOADS PAGE -->
+  <div id="page-downloads" class="page">
+    <div class="page-header">
+      <h1>📥 Downloads</h1>
+      <p>Content saved for offline viewing</p>
+    </div>
+    <div id="storage-info" style="padding:0 4% 16px;font-size:13px;color:var(--text2);"></div>
+    <div class="history-grid" id="downloads-grid"></div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- SETTINGS OVERLAY + DRAWER -->
+<div id="settings-overlay" onclick="closeSettings()"></div>
+<div id="settings-drawer">
+  <div class="settings-header">
+    <h2>⚙️ Settings</h2>
+    <button class="icon-btn" onclick="closeSettings()"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">TMDB API Key</div>
+    <input class="settings-input" id="s-tmdb-key" type="password" placeholder="Paste your TMDB API v3 key…">
+    <p style="font-size:11px;color:var(--text3);margin-top:6px;">Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--red);">themoviedb.org/settings/api</a></p>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Default Subtitle Language</div>
+    <select class="settings-select" id="s-sub-lang">
+      <option value="off">Off</option>
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="bn">Bengali</option>
+    </select>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Preferences</div>
+    <div class="settings-toggle">
+      <span>Default Anime Audio</span>
+      <div style="display:flex;gap:0;border:1px solid rgba(255,255,255,0.15);border-radius:4px;overflow:hidden;">
+        <button id="s-anime-dub" onclick="setAnimePref('dub')" style="padding:6px 14px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:var(--transition);font-family:inherit;">DUB</button>
+        <button id="s-anime-sub" onclick="setAnimePref('sub')" style="padding:6px 14px;font-size:12px;font-weight:700;border:none;background:var(--red);color:white;cursor:pointer;transition:var(--transition);font-family:inherit;">SUB</button>
+      </div>
+    </div>
+    <div class="settings-toggle">
+      <span>Autoplay Next Episode</span>
+      <button class="toggle-switch on" id="s-autoplay" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="settings-toggle">
+      <span>HD Quality Preferred</span>
+      <button class="toggle-switch on" id="s-hd" onclick="this.classList.toggle('on')"></button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Player Source Priority</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Order: VidSrc → 2Embed → VidSrc.xyz</p>
+    <select class="settings-select" id="s-source-prio">
+      <option value="vidsrc">VidSrc.to (Default)</option>
+      <option value="2embed">2Embed.cc</option>
+      <option value="vidsrcxyz">VidSrc.xyz</option>
+    </select>
+  </div>
+
+  <div class="settings-section">
+    <button class="btn-danger" onclick="confirmClearAll()">
+      <i class="fas fa-trash-alt"></i> Clear All Data & Cache
+    </button>
+  </div>
+
+  <div style="margin-top:12px;text-align:center;font-size:11px;color:var(--text3);">
+    CloudHub v1.0 · Personal Use Only
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Confirm</h3>
+    <p id="modal-msg">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="btn btn-grey btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red btn-sm" id="modal-confirm-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CLOUDHUB — Core App
+// ═══════════════════════════════════════════════════
+
+const APP = {
+  tmdbKey: localStorage.getItem('ch_tmdb_key') || '',
+  tmdbBase: 'https://api.themoviedb.org/3',
+  tmdbImg: 'https://image.tmdb.org/t/p',
+  consumet: 'https://api.consumet.org',
+  currentPage: 'home',
+  searchFilter: 'all',
+  heroInterval: null,
+  heroIndex: 0,
+  heroItems: [],
+  searchTimer: null,
+  cache: {},
+  settings: JSON.parse(localStorage.getItem('ch_settings') || '{}'),
+};
+
+// Init settings defaults
+APP.settings = Object.assign({
+  subLang: 'off',
+  animePref: 'sub',
+  autoplay: true,
+  hd: true,
+  sourcePrio: 'vidsrc'
+}, APP.settings);
+
+// ─── ROUTING ───
+function navigate(page, params = {}) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) {
+    pageEl.classList.add('active');
+  }
+
+  // Update nav highlight
+  const navA = document.querySelector(`.nav-links a[data-page="${page}"]`);
+  if (navA) navA.classList.add('active');
+  const tabEl = document.querySelector(`.bottom-tab[data-tab="${page}"]`);
+  if (tabEl) tabEl.classList.add('active');
+
+  APP.currentPage = page;
+  window.history.pushState({ page, params }, '', `#${page}`);
+
+  // Show/hide navbar hero style
+  const navbar = document.getElementById('navbar');
+  if (page === 'home') {
+    navbar.classList.add('hero-top');
+    navbar.classList.remove('scrolled');
+  } else {
+    navbar.classList.remove('hero-top');
+    navbar.classList.add('scrolled');
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Load page content
+  switch(page) {
+    case 'home': loadHome(); break;
+    case 'movies': loadMoviesPage(); break;
+    case 'series': loadSeriesPage(); break;
+    case 'anime': loadAnimePage(); break;
+    case 'live': loadLivePage(); break;
+    case 'search': document.getElementById('search-input').focus(); break;
+    case 'history': loadHistoryPage(); break;
+    case 'downloads': loadDownloadsPage(); break;
+    case 'detail': loadDetailPage(params); break;
+    case 'player': loadPlayerPage(params); break;
+  }
+}
+
+window.addEventListener('popstate', e => {
+  if (e.state?.page) navigate(e.state.page, e.state.params);
+});
+
+// ─── SCROLL NAV ───
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const sy = window.scrollY;
+  const nb = document.getElementById('navbar');
+  if (APP.currentPage === 'home') {
+    if (sy > 80) {
+      nb.classList.remove('hero-top');
+      nb.classList.add('scrolled');
+    } else {
+      nb.classList.add('hero-top');
+      nb.classList.remove('scrolled');
+    }
+  }
+  lastScroll = sy;
+}, { passive: true });
+
+// ─── API FETCH ───
+async function tmdb(endpoint, params = {}) {
+  if (!APP.tmdbKey) return null;
+  const cacheKey = endpoint + JSON.stringify(params);
+  const cached = APP.cache[cacheKey];
+  if (cached && (Date.now() - cached.ts < 300000)) return cached.data;
+
+  const url = new URL(APP.tmdbBase + endpoint);
+  url.searchParams.set('api_key', APP.tmdbKey);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 7000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    APP.cache[cacheKey] = { data, ts: Date.now() };
+    return data;
+  } catch(e) {
+    console.warn('TMDB error:', e);
+    return null;
+  }
+}
+
+async function consumetFetch(endpoint) {
+  const cacheKey = 'consumet:' + endpoint;
+  const cached = APP.cache[cacheKey];
+  if (cached && (Date.now() - cached.ts < 300000)) return cached.data;
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 7000);
+    const r = await fetch(APP.consumet + endpoint, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    APP.cache[cacheKey] = { data, ts: Date.now() };
+    return data;
+  } catch(e) {
+    console.warn('Consumet error:', e);
+    return null;
+  }
+}
+
+// ─── IMAGE URL ───
+function img(path, size = 'w342') {
+  if (!path) return `https://placehold.co/342x513/1a1a1a/444?text=No+Image`;
+  return `${APP.tmdbImg}/${size}${path}`;
+}
+function backdrop(path, size = 'w1280') {
+  if (!path) return `https://placehold.co/1280x720/0a0a0a/1a1a1a?text=CloudHub`;
+  return `${APP.tmdbImg}/${size}${path}`;
+}
+
+// ─── SKELETON ───
+function skeleton(n = 6) {
+  return Array(n).fill('<div class="card-skeleton"></div>').join('');
+}
+
+// ─── CARD BUILDER ───
+function buildCard(item, type = 'movie') {
+  const id = item.id || item.mal_id;
+  const title = item.title || item.name || item.original_title || 'Unknown';
+  const poster = item.poster_path
+    ? img(item.poster_path)
+    : (item.image || item.coverImage?.large || `https://placehold.co/160x240/141414/444?text=${encodeURIComponent(title.slice(0,10))}`);
+  const rating = item.vote_average ? item.vote_average.toFixed(1) : (item.score ? (item.score/10).toFixed(1) : '?');
+  const year = (item.release_date || item.first_air_date || item.startDate?.year || '').toString().slice(0,4);
+
+  const progress = getProgress(id, type);
+  const progressBar = progress > 0
+    ? `<div class="card-progress"><div class="card-progress-fill" style="width:${progress}%"></div></div>`
+    : '';
+
+  const badge = type === 'anime'
+    ? `<span class="badge badge-left badge-sub">ANIME</span>`
+    : type === 'hindi'
+    ? `<span class="badge badge-left badge-hindi">HINDI</span>`
+    : `<span class="badge badge-right badge-hd">HD</span>`;
+
+  return `
+    <div class="card" onclick="openDetail('${id}','${type}')">
+      <div class="card-img-wrap">
+        <img src="${poster}" alt="${title}" loading="lazy" onerror="this.src='https://placehold.co/160x240/141414/444?text=N/A'">
+        ${badge}
+        <div class="card-hover-overlay">
+          <div class="card-play-btn"><i class="fas fa-play"></i></div>
+          <div class="card-hover-title">${title}</div>
+          <div class="card-hover-meta">
+            <span class="card-hover-rating">${rating !== '?' ? '★ ' + rating : ''}</span>
+            <span style="font-size:11px;color:var(--text2)">${year}</span>
+          </div>
+        </div>
+        ${progressBar}
+      </div>
+    </div>`;
+}
+
+// ─── ROW BUILDER ───
+function buildRow(title, items, type, seeAllPage = '') {
+  if (!items || !items.length) return '';
+  const cards = items.slice(0,20).map(i => buildCard(i, type)).join('');
+  const seeAll = seeAllPage ? `<a class="see-all" onclick="navigate('${seeAllPage}')">See All <i class="fas fa-chevron-right"></i></a>` : '';
+  return `
+    <div class="row-section">
+      <div class="row-header">
+        <h2 class="row-title">${title}</h2>
+        ${seeAll}
+      </div>
+      <div class="row-scroll">${cards}</div>
+    </div>`;
+}
+
+// ─── HOME ───
+async function loadHome() {
+  if (!APP.tmdbKey) {
+    showApiBanner();
+    loadHomeWithoutKey();
+    return;
+  }
+  hideApiBanner();
+
+  // Hero
+  const trending = await tmdb('/trending/all/week');
+  if (trending?.results) {
+    APP.heroItems = trending.results.slice(0, 5);
+    buildHero(APP.heroItems);
+  }
+
+  // Rows
+  const rowsEl = document.getElementById('home-rows');
+  rowsEl.innerHTML = '<div style="padding:20px 0;">' + Array(6).fill('<div class="row-section"><div style="height:20px;width:200px;background:var(--surface2);border-radius:4px;margin-bottom:14px;"></div><div class="row-scroll">' + skeleton(8) + '</div></div>').join('') + '</div>';
+
+  const [pop_movies, top_series, now_playing, top_movies, pop_series] = await Promise.all([
+    tmdb('/movie/popular'),
+    tmdb('/tv/top_rated'),
+    tmdb('/movie/now_playing'),
+    tmdb('/movie/top_rated'),
+    tmdb('/tv/popular'),
+  ]);
+
+  const history = getHistory();
+  let html = '';
+
+  // Continue Watching
+  if (history.length > 0) {
+    html += buildRow('🕐 Continue Watching', history.slice(0,15).map(h => ({
+      id: h.id, title: h.title, poster_path: h.poster, vote_average: h.rating
+    })), 'continue', 'history');
+  }
+
+  html += buildRow('🔥 Trending Now', trending?.results, 'movie', 'movies');
+  html += buildRow('🎬 Popular Movies', pop_movies?.results, 'movie', 'movies');
+  html += buildRow('📺 Top Rated Series', top_series?.results, 'tv', 'series');
+  html += buildRow('🌟 Now Playing', now_playing?.results, 'movie', 'movies');
+  html += buildRow('⭐ Top Rated Movies', top_movies?.results, 'movie', 'movies');
+  html += buildRow('📺 Popular Series', pop_series?.results, 'tv', 'series');
+
+  // Hindi Cartoons row (static)
+  html += buildRow('🎌 Classic Hindi Cartoons', HINDI_CARTOONS, 'hindi', '');
+
+  // Anime row from Consumet
+  const animeData = await consumetFetch('/anime/gogoanime/top-airing');
+  if (animeData?.results) {
+    html += buildRow('🇯🇵 Anime — Hot Right Now', animeData.results, 'anime', 'anime');
+  }
+
+  rowsEl.innerHTML = html;
+}
+
+function loadHomeWithoutKey() {
+  const rowsEl = document.getElementById('home-rows');
+  const heroEl = document.getElementById('hero');
+  heroEl.innerHTML = `
+    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0a0a,#1a0000);">
+      <div style="text-align:center;padding:20px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:80px;color:var(--red);line-height:1;">CLOUDHUB</div>
+        <p style="color:var(--text2);font-size:16px;margin-top:10px;">Your personal streaming hub</p>
+        <button class="btn btn-red" style="margin-top:20px;" onclick="openSettings()"><i class="fas fa-key"></i> Add TMDB Key to Start</button>
+      </div>
+    </div>`;
+
+  rowsEl.innerHTML = `<div id="api-banner" style="background:linear-gradient(135deg,rgba(229,9,20,0.15),rgba(229,9,20,0.05));border:1px solid rgba(229,9,20,0.3);border-radius:8px;padding:16px 20px;margin:20px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <i class="fas fa-key" style="color:var(--red);font-size:20px;"></i>
+    <div style="flex:1;"><p style="font-size:14px;font-weight:600;margin-bottom:4px;">Add your free TMDB API key to unlock all content</p><p style="font-size:12px;color:var(--text2);">Get a free key in 2 minutes — no credit card needed</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="https://www.themoviedb.org/signup" target="_blank" class="btn btn-grey btn-sm"><i class="fas fa-external-link-alt"></i> Get Key</a>
+      <button class="btn btn-red btn-sm" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
+    </div>
+  </div>
+  <div class="row-section">
+    <div class="row-header"><h2 class="row-title">🎌 Classic Hindi Cartoons</h2></div>
+    <div class="row-scroll">${HINDI_CARTOONS.map(i => buildCard(i,'hindi')).join('')}</div>
+  </div>`;
+}
+
+// ─── HERO ───
+function buildHero(items) {
+  const heroEl = document.getElementById('hero');
+  heroEl.innerHTML = items.map((item, i) => {
+    const title = item.title || item.name;
+    const bg = backdrop(item.backdrop_path);
+    const rating = item.vote_average?.toFixed(1) || '';
+    const year = (item.release_date || item.first_air_date || '').slice(0,4);
+    const type = item.media_type || (item.title ? 'movie' : 'tv');
+    const genres = (item.genre_ids || []).slice(0,3).map(id => GENRE_MAP[id]).filter(Boolean);
+    return `
+      <div class="hero-slide ${i===0?'active':''}" data-idx="${i}">
+        <div class="hero-bg-div" style="background-image:url('${bg}')"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="hero-badge"><i class="fas fa-fire"></i> Trending #${i+1}</div>
+          <h1 class="hero-title">${title}</h1>
+          <div class="hero-meta">
+            <span class="rating">★ ${rating}</span>
+            <span class="year">${year}</span>
+            <span>${type === 'movie' ? 'Movie' : 'TV Series'}</span>
+          </div>
+          <div class="hero-genres">${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>
+          <p class="hero-desc">${item.overview || ''}</p>
+          <div class="hero-btns">
+            <button class="btn btn-red" onclick="openPlayer('${item.id}','${type}',1,1)"><i class="fas fa-play"></i> Play Now</button>
+            <button class="btn btn-grey" onclick="openDetail('${item.id}','${type}')"><i class="fas fa-info-circle"></i> More Info</button>
+          </div>
+        </div>
+        <div class="hero-dots">${items.map((_,j) => `<div class="hero-dot ${j===0?'active':''}" onclick="goHero(${j})"></div>`).join('')}</div>
+      </div>`;
+  }).join('');
+
+  APP.heroIndex = 0;
+  clearInterval(APP.heroInterval);
+  APP.heroInterval = setInterval(nextHero, 6000);
+}
+
+function nextHero() {
+  APP.heroIndex = (APP.heroIndex + 1) % APP.heroItems.length;
+  goHero(APP.heroIndex);
+}
+
+function goHero(idx) {
+  APP.heroIndex = idx;
+  document.querySelectorAll('.hero-slide').forEach((s,i) => s.classList.toggle('active', i===idx));
+  document.querySelectorAll('.hero-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+}
+
+// ─── MOVIES PAGE ───
+async function loadMoviesPage() {
+  const grid = document.getElementById('movies-grid');
+  grid.innerHTML = skeleton(12);
+  const catsEl = document.getElementById('movies-cats');
+  catsEl.innerHTML = ['Popular','Top Rated','Now Playing','Upcoming','Action','Comedy','Drama','Horror','Sci-Fi','Animation'].map((c,i) =>
+    `<button class="cat-tab ${i===0?'active':''}" onclick="loadMoviesCat('${c}',this)">${c}</button>`
+  ).join('');
+  await loadMoviesCat('Popular', catsEl.querySelector('.active'));
+}
+
+async function loadMoviesCat(cat, btn) {
+  document.querySelectorAll('#movies-cats .cat-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const grid = document.getElementById('movies-grid');
+  grid.innerHTML = skeleton(12);
+
+  const endpoints = {
+    'Popular': '/movie/popular',
+    'Top Rated': '/movie/top_rated',
+    'Now Playing': '/movie/now_playing',
+    'Upcoming': '/movie/upcoming',
+    'Action': '/discover/movie',
+    'Comedy': '/discover/movie',
+    'Drama': '/discover/movie',
+    'Horror': '/discover/movie',
+    'Sci-Fi': '/discover/movie',
+    'Animation': '/discover/movie',
+  };
+  const genreMap = { Action: 28, Comedy: 35, Drama: 18, Horror: 27, 'Sci-Fi': 878, Animation: 16 };
+  const params = genreMap[cat] ? { with_genres: genreMap[cat] } : {};
+  const data = await tmdb(endpoints[cat] || '/movie/popular', params);
+  grid.innerHTML = (data?.results || []).map(i => buildCard(i,'movie')).join('');
+}
+
+// ─── SERIES PAGE ───
+async function loadSeriesPage() {
+  const grid = document.getElementById('series-grid');
+  grid.innerHTML = skeleton(12);
+  const catsEl = document.getElementById('series-cats');
+  catsEl.innerHTML = ['Popular','Top Rated','On The Air','Action','Drama','Comedy','Sci-Fi','Crime','Documentary'].map((c,i) =>
+    `<button class="cat-tab ${i===0?'active':''}" onclick="loadSeriesCat('${c}',this)">${c}</button>`
+  ).join('');
+  await loadSeriesCat('Popular', catsEl.querySelector('.active'));
+}
+
+async function loadSeriesCat(cat, btn) {
+  document.querySelectorAll('#series-cats .cat-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const grid = document.getElementById('series-grid');
+  grid.innerHTML = skeleton(12);
+  const endpoints = {
+    'Popular': '/tv/popular',
+    'Top Rated': '/tv/top_rated',
+    'On The Air': '/tv/on_the_air',
+    'Action': '/discover/tv',
+    'Drama': '/discover/tv',
+    'Comedy': '/discover/tv',
+    'Sci-Fi': '/discover/tv',
+    'Crime': '/discover/tv',
+    'Documentary': '/discover/tv',
+  };
+  const genreMapTV = { Action: 10759, Drama: 18, Comedy: 35, 'Sci-Fi': 10765, Crime: 80, Documentary: 99 };
+  const params = genreMapTV[cat] ? { with_genres: genreMapTV[cat] } : {};
+  const data = await tmdb(endpoints[cat] || '/tv/popular', params);
+  grid.innerHTML = (data?.results || []).map(i => buildCard(i,'tv')).join('');
+}
+
+// ─── ANIME PAGE ───
+async function loadAnimePage() {
+  const grid = document.getElementById('anime-grid');
+  grid.innerHTML = skeleton(12);
+  const catsEl = document.getElementById('anime-cats');
+  catsEl.innerHTML = ['Top Airing','Popular','Movies','Action','Romance','Isekai','Shonen','Fantasy'].map((c,i) =>
+    `<button class="cat-tab ${i===0?'active':''}" onclick="loadAnimeCat('${c}',this)">${c}</button>`
+  ).join('');
+  await loadAnimeCat('Top Airing', catsEl.querySelector('.active'));
+}
+
+async function loadAnimeCat(cat, btn) {
+  document.querySelectorAll('#anime-cats .cat-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const grid = document.getElementById('anime-grid');
+  grid.innerHTML = skeleton(12);
+
+  const endpoints = {
+    'Top Airing': '/anime/gogoanime/top-airing',
+    'Popular': '/anime/gogoanime/most-popular',
+    'Movies': '/anime/gogoanime/movies',
+  };
+
+  const genreAnime = { Action: 'action', Romance: 'romance', Isekai: 'isekai', Shonen: 'shounen', Fantasy: 'fantasy' };
+
+  let data;
+  if (endpoints[cat]) {
+    data = await consumetFetch(endpoints[cat]);
+  } else {
+    data = await consumetFetch(`/anime/gogoanime?search=${genreAnime[cat]||cat.toLowerCase()}`);
+  }
+
+  const items = data?.results || [];
+  grid.innerHTML = items.length
+    ? items.map(i => buildCard(i, 'anime')).join('')
+    : `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-dragon"></i><h2>Anime unavailable</h2><p>Consumet API may be temporarily down. <button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="loadAnimeCat('${cat}',document.querySelector('#anime-cats .active'))"><i class="fas fa-redo"></i> Retry</button></p></div>`;
+}
+
+// ─── LIVE TV ───
+const LIVE_CHANNELS = [
+  { id: 'bbc', name: 'BBC World News', category: 'News', icon: '📺', color: '#BB1919',
+    url: 'https://vs1.hdstreamz.io:8443/bbcworld/index.m3u8' },
+  { id: 'aljazeera', name: 'Al Jazeera', category: 'News', icon: '🌍', color: '#00A859',
+    url: 'https://live-hls-web-aje.getaj.net/AJE/index.m3u8' },
+  { id: 'cgtn', name: 'CGTN', category: 'News', icon: '🇨🇳', color: '#CE1126',
+    url: 'https://news.cgtn.com/resource/live/english/cgtn-news.m3u8' },
+  { id: 'cnn', name: 'CNN International', category: 'News', icon: '🗞️', color: '#CC0000',
+    url: 'https://cnn-cnninternational-1-eu.samsung.wurl.com/manifest/playlist.m3u8' },
+  { id: 'nasa', name: 'NASA TV', category: 'Science', icon: '🚀', color: '#1B3A6B',
+    url: 'https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8' },
+  { id: 'bloomberg', name: 'Bloomberg', category: 'Business', icon: '💹', color: '#333333',
+    url: 'https://cdn3.wowza.com/1/WVFGQzlxdnFoZEN4/cHJpbWFy/hls/live/playlist.m3u8' },
+  { id: 'france24en', name: 'France 24 EN', category: 'News', icon: '🇫🇷', color: '#003189',
+    url: 'https://stream.france24.com/hls/live/2037163/F24_EN_HI_HLS/master.m3u8' },
+  { id: 'lofi', name: 'Lofi Hip Hop Radio', category: 'Music', icon: '🎵', color: '#6B4F8C',
+    url: 'https://live.hunter.fm/hiphop_high' },
+  { id: 'euronews', name: 'Euronews', category: 'News', icon: '🇪🇺', color: '#003D87',
+    url: 'https://euronews-euronews-en-live.samsung.wurl.com/manifest/playlist.m3u8' },
+  { id: 'rt', name: 'RT International', category: 'News', icon: '📡', color: '#CD1B1B',
+    url: 'https://rt-glob.rttv.com/live/rtnews/playlist.m3u8' },
+  { id: 'dw', name: 'DW English', category: 'News', icon: '🌐', color: '#003E80',
+    url: 'https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8' },
+  { id: 'nhk', name: 'NHK World', category: 'News', icon: '🇯🇵', color: '#1A1A6E',
+    url: 'https://nhkwlive-ojp.nhk.or.jp/hls/live/2003461/nhkwlive-ojp-en/index.m3u8' },
+];
+
+function loadLivePage() {
+  const grid = document.getElementById('live-grid');
+  grid.innerHTML = LIVE_CHANNELS.map(ch => `
+    <div class="live-card" onclick="openLiveChannel('${ch.id}')">
+      <div class="live-card-img" style="background:linear-gradient(135deg,${ch.color}22,${ch.color}44);">
+        <span style="font-size:40px;">${ch.icon}</span>
+      </div>
+      <div class="live-card-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="badge-live badge" style="position:static;font-size:9px;padding:2px 6px;">LIVE</div>
+          <span class="live-card-cat">${ch.category}</span>
+        </div>
+        <div class="live-card-name">${ch.name}</div>
+      </div>
+    </div>`).join('');
+}
+
+function openLiveChannel(id) {
+  const ch = LIVE_CHANNELS.find(c => c.id === id);
+  if (!ch) return;
+  navigate('player', { type: 'live', id, url: ch.url, title: ch.name, icon: ch.icon });
+}
+
+// ─── DETAIL PAGE ───
+async function openDetail(id, type) {
+  navigate('detail', { id, type });
+}
+
+async function loadDetailPage({ id, type }) {
+  const el = document.getElementById('detail-page');
+  el.innerHTML = '<div class="spinner"></div>';
+
+  if (type === 'anime') {
+    await loadAnimeDetail(id, el);
+    return;
+  }
+
+  if (type === 'hindi') {
+    const hc = HINDI_CARTOONS.find(c => c.id == id);
+    if (hc) {
+      await loadTMDBDetail(hc.tmdbId || id, hc.type || 'tv', el, 'hindi', hc);
+      return;
+    }
+  }
+
+  const endpoint = type === 'tv' ? `/tv/${id}` : `/movie/${id}`;
+  const [detail, credits, videos] = await Promise.all([
+    tmdb(endpoint),
+    tmdb(`${endpoint}/credits`),
+    tmdb(`${endpoint}/videos`),
+  ]);
+
+  if (!detail) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h2>Could not load details</h2><p>Please check your TMDB API key</p></div>';
+    return;
+  }
+
+  const title = detail.title || detail.name;
+  const year = (detail.release_date || detail.first_air_date || '').slice(0,4);
+  const rating = detail.vote_average?.toFixed(1) || 'N/A';
+  const runtime = detail.runtime ? `${detail.runtime}m` : (detail.episode_run_time?.[0] ? `~${detail.episode_run_time[0]}m/ep` : '');
+  const genres = (detail.genres || []).map(g => g.name).join(' · ');
+  const inWatchlist = getWatchlist().some(w => w.id == id);
+  const inDownloads = getDownloads().some(d => d.id == id);
+
+  let html = `
+    <div class="detail-backdrop">
+      <div class="detail-backdrop-img-div" style="background-image:url('${backdrop(detail.backdrop_path)}')"></div>
+      <div class="detail-backdrop-gradient"></div>
+    </div>
+    <div class="detail-content">
+      <div class="detail-poster">
+        <img src="${img(detail.poster_path)}" alt="${title}" onerror="this.src='https://placehold.co/160x240/141414/444?text=N/A'">
+      </div>
+      <div class="detail-info">
+        <h1 class="detail-title">${title}</h1>
+        <div class="detail-meta-row">
+          <span class="detail-rating">★ ${rating}</span>
+          <span>${year}</span>
+          ${runtime ? `<span>${runtime}</span>` : ''}
+          <span style="color:var(--text2)">${genres}</span>
+        </div>
+        <p class="detail-desc collapsed" id="detail-desc">${detail.overview || 'No description available.'}</p>
+        <button class="read-more" onclick="toggleDesc()">Read more</button>
+        <div class="detail-actions">
+          <button class="btn btn-red btn-sm" onclick="openPlayer('${id}','${type}',1,1)"><i class="fas fa-play"></i> Play</button>
+          <button class="btn btn-grey btn-sm" id="watchlist-btn" onclick="toggleWatchlist('${id}','${type}','${title}','${detail.poster_path||''}','${rating}')">
+            <i class="fas fa-${inWatchlist?'check':'plus'} watchlist-icon ${inWatchlist?'added':''}"></i> ${inWatchlist?'Watchlisted':'Watchlist'}
+          </button>
+          <button class="btn btn-grey btn-sm" onclick="downloadItem('${id}','${type}','${title}','${detail.poster_path||''}','${rating}')">
+            <i class="fas fa-${inDownloads?'check-circle':'download'}"></i> ${inDownloads?'Saved':'Download'}
+          </button>
+          <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')">
+            <i class="fas fa-share-alt"></i> Share
+          </button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 4%;margin-top:28px;">`;
+
+  if (type === 'tv') {
+    const seasons = detail.seasons?.filter(s => s.season_number > 0) || [];
+    html += `
+      <div class="season-selector">
+        <select id="season-select" onchange="loadEpisodes('${id}',this.value)">
+          ${seasons.map(s => `<option value="${s.season_number}">Season ${s.season_number} (${s.episode_count} eps)</option>`).join('')}
+        </select>
+      </div>
+      <div id="episodes-container"><div class="spinner"></div></div>`;
+    html += '</div>';
+    el.innerHTML = html;
+    if (seasons.length) loadEpisodes(id, 1);
+  } else {
+    html += '</div>';
+    el.innerHTML = html;
+  }
+}
+
+async function loadTMDBDetail(tmdbId, type, el, badge, originalItem) {
+  const endpoint = type === 'tv' ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
+  const detail = await tmdb(endpoint);
+  if (!detail) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h2>Could not load</h2></div>';
+    return;
+  }
+  // Reuse normal detail but mark as hindi
+  const title = detail.title || detail.name || originalItem?.title || 'Unknown';
+  const year = (detail.release_date || detail.first_air_date || '').slice(0,4);
+  const rating = detail.vote_average?.toFixed(1) || 'N/A';
+
+  el.innerHTML = `
+    <div class="detail-backdrop">
+      <div class="detail-backdrop-img-div" style="background-image:url('${backdrop(detail.backdrop_path)}')"></div>
+      <div class="detail-backdrop-gradient"></div>
+    </div>
+    <div class="detail-content">
+      <div class="detail-poster">
+        <img src="${img(detail.poster_path)}" alt="${title}">
+      </div>
+      <div class="detail-info">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <h1 class="detail-title">${title}</h1>
+          <span class="badge badge-hindi" style="position:static;font-size:10px;padding:3px 8px;">HINDI</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-rating">★ ${rating}</span>
+          <span>${year}</span>
+        </div>
+        <p class="detail-desc">${detail.overview || originalItem?.desc || ''}</p>
+        <div class="detail-actions">
+          <button class="btn btn-red btn-sm" onclick="openPlayer('${tmdbId}','${type}',1,1)"><i class="fas fa-play"></i> Play (Hindi Dub)</button>
+          <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')"><i class="fas fa-share-alt"></i> Share</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadAnimeDetail(id, el) {
+  const data = await consumetFetch(`/anime/gogoanime/info/${id}`);
+
+  if (!data) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-dragon"></i><h2>Anime info unavailable</h2><p>Consumet API may be down. <button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="openDetail(\''+id+'\',\'anime\')"><i class="fas fa-redo"></i> Retry</button></p></div>';
+    return;
+  }
+
+  const title = data.title || id;
+  const pref = localStorage.getItem(`ch_anime_pref_${id}`) || APP.settings.animePref;
+  const episodes = data.episodes || [];
+
+  el.innerHTML = `
+    <div class="detail-backdrop">
+      <div class="detail-backdrop-img-div" style="background-image:url('${data.cover || data.image || ''}');"></div>
+      <div class="detail-backdrop-gradient"></div>
+    </div>
+    <div class="detail-content">
+      <div class="detail-poster">
+        <img src="${data.image || 'https://placehold.co/160x240/141414/444?text=Anime'}" alt="${title}">
+      </div>
+      <div class="detail-info">
+        <h1 class="detail-title">${title}</h1>
+        <div class="detail-meta-row">
+          <span class="detail-rating">★ ${data.rating || 'N/A'}</span>
+          <span>${data.releaseDate || ''}</span>
+          <span>${data.status || ''}</span>
+          <span>${episodes.length} Episodes</span>
+        </div>
+        <p class="detail-desc collapsed" id="detail-desc">${data.description || ''}</p>
+        <button class="read-more" onclick="toggleDesc()">Read more</button>
+        <div class="dub-sub-toggle">
+          <button class="dub-sub-btn ${pref==='dub'?'active':''}" onclick="setAnimePrefLocal('${id}','dub',this)">DUB</button>
+          <button class="dub-sub-btn ${pref==='sub'?'active':''}" onclick="setAnimePrefLocal('${id}','sub',this)">SUB</button>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-red btn-sm" onclick="playAnimeEpisode('${episodes[0]?.id||id}','${title}','${id}')"><i class="fas fa-play"></i> Play Ep 1</button>
+          <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')"><i class="fas fa-share-alt"></i> Share</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 4%;margin-top:28px;">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;">Episodes</h3>
+      <div class="episodes-grid">
+        ${episodes.slice(0,50).map((ep,i) => `
+          <div class="episode-item" onclick="playAnimeEpisode('${ep.id}','${title} - Ep ${ep.number}','${id}')">
+            <div style="background:var(--surface2);width:120px;height:68px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;">▶</div>
+            <div class="ep-info">
+              <div class="ep-num">EPISODE ${ep.number}</div>
+              <div class="ep-title">${ep.title || `Episode ${ep.number}`}</div>
+            </div>
+            ${ep.isFiller ? `<span style="font-size:10px;color:var(--amber);font-weight:700;">FILLER</span>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function setAnimePrefLocal(animeId, pref, btn) {
+  localStorage.setItem(`ch_anime_pref_${animeId}`, pref);
+  btn.parentElement.querySelectorAll('.dub-sub-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast(`Switched to ${pref.toUpperCase()}`);
+}
+
+async function loadEpisodes(seriesId, season) {
+  const cont = document.getElementById('episodes-container');
+  if (!cont) return;
+  cont.innerHTML = '<div class="spinner"></div>';
+
+  const data = await tmdb(`/tv/${seriesId}/season/${season}`);
+  if (!data?.episodes) {
+    cont.innerHTML = '<p style="color:var(--text2);padding:10px 0;">No episodes found.</p>';
+    return;
+  }
+
+  cont.innerHTML = `
+    <div class="episodes-grid">
+      ${data.episodes.map(ep => `
+        <div class="episode-item" onclick="openPlayer('${seriesId}','tv',${season},${ep.episode_number})">
+          <img class="ep-thumb" src="${ep.still_path ? img(ep.still_path,'w300') : 'https://placehold.co/120x68/1a1a1a/444?text=EP'}"
+            alt="Ep ${ep.episode_number}" loading="lazy" onerror="this.style.background='var(--surface2)';this.src='https://placehold.co/120x68/1a1a1a/444?text=EP'">
+          <div class="ep-info">
+            <div class="ep-num">EPISODE ${ep.episode_number}</div>
+            <div class="ep-title">${ep.name}</div>
+            <div class="ep-desc">${ep.overview || ''}</div>
+          </div>
+          <div class="ep-duration">${ep.runtime ? ep.runtime+'m' : ''}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function toggleDesc() {
+  const d = document.getElementById('detail-desc');
+  const btn = document.querySelector('.read-more');
+  if (d.classList.contains('collapsed')) {
+    d.classList.remove('collapsed');
+    btn.textContent = 'Read less';
+  } else {
+    d.classList.add('collapsed');
+    btn.textContent = 'Read more';
+  }
+}
+
+// ─── PLAYER ───
+function openPlayer(id, type, season = 1, episode = 1) {
+  navigate('player', { id, type, season, episode });
+}
+
+function playAnimeEpisode(epId, title, animeId) {
+  navigate('player', { type: 'anime', epId, title, animeId });
+}
+
+async function loadPlayerPage(params) {
+  const wrapper = document.getElementById('player-wrapper');
+  const infoEl = document.getElementById('player-info');
+
+  if (params.type === 'live') {
+    const ch = LIVE_CHANNELS.find(c => c.id === params.id);
+    wrapper.innerHTML = `<video id="live-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;"></video>`;
+    infoEl.innerHTML = `<div class="player-title">${ch?.icon || '📡'} ${params.title}</div><div class="player-meta"><span class="badge-live badge" style="position:static;font-size:10px;padding:2px 8px;">LIVE</span> <span style="color:var(--text2);font-size:13px;">${ch?.category||''}</span></div>`;
+
+    const video = document.getElementById('live-video');
+    if (ch?.url && Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true });
+      hls.loadSource(ch.url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+      hls.on(Hls.Events.ERROR, (_, d) => {
+        if (d.fatal) {
+          infoEl.innerHTML += `<div style="color:var(--amber);font-size:13px;margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Stream unavailable. Try another channel.</div>`;
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = ch.url;
+      video.play().catch(()=>{});
+    }
+    return;
+  }
+
+  if (params.type === 'anime') {
+    // Use Consumet for stream URL
+    infoEl.innerHTML = `<div class="player-title">${params.title || 'Anime'}</div><div class="player-meta">Loading stream…</div>`;
+    const streamData = await consumetFetch(`/anime/gogoanime/watch/${params.epId}`);
+    const sources = streamData?.sources || [];
+    const best = sources.find(s => s.quality === '1080p') || sources.find(s => s.quality === '720p') || sources[0];
+
+    if (best?.url) {
+      wrapper.innerHTML = `<video id="anime-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;"></video>`;
+      const video = document.getElementById('anime-video');
+      if (Hls.isSupported()) {
+        const hls = new Hls({ enableWorker: true });
+        hls.loadSource(best.url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = best.url;
+      }
+      saveToHistory({ id: params.animeId, type: 'anime', title: params.title, poster: '', rating: '' });
+    } else {
+      wrapper.innerHTML = buildEmbedPlayer(params.animeId || params.epId, 'movie');
+      infoEl.innerHTML += `<div style="color:var(--amber);font-size:13px;margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Direct stream unavailable, trying embed…</div>`;
+    }
+    infoEl.innerHTML = `<div class="player-title">${params.title}</div><div class="player-meta">Anime Episode</div>`;
+    return;
+  }
+
+  // Movie or TV via embed
+  const { id, type, season, episode } = params;
+  const sourcePrio = APP.settings.sourcePrio || 'vidsrc';
+  const embedUrl = getEmbedUrl(id, type, season, episode, sourcePrio);
+
+  wrapper.innerHTML = buildEmbedPlayer(id, type, season, episode, sourcePrio);
+
+  // Fetch info for panel
+  if (APP.tmdbKey) {
+    const endpoint = type === 'tv' ? `/tv/${id}` : `/movie/${id}`;
+    const detail = await tmdb(endpoint);
+    if (detail) {
+      const title = detail.title || detail.name;
+      const epLabel = type === 'tv' ? ` · S${String(season).padStart(2,'0')}E${String(episode).padStart(2,'0')}` : '';
+      infoEl.innerHTML = `
+        <div class="player-title">${title}${epLabel}</div>
+        <div class="player-meta">${detail.genres?.map(g=>g.name).join(' · ') || ''} · ${(detail.release_date||detail.first_air_date||'').slice(0,4)}</div>
+        <div class="player-actions">
+          <button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-info-circle"></i> Details</button>
+          <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')"><i class="fas fa-share-alt"></i> Share</button>
+          ${type === 'tv' ? `<button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-list"></i> All Episodes</button>` : ''}
+        </div>
+        <div class="source-switcher">
+          <h3><i class="fas fa-server"></i> Switch Source</h3>
+          <div class="source-btns">
+            <button class="source-btn ${sourcePrio==='vidsrc'?'active':''}" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrc',this)">VidSrc</button>
+            <button class="source-btn ${sourcePrio==='2embed'?'active':''}" onclick="switchSource('${id}','${type}','${season}','${episode}','2embed',this)">2Embed</button>
+            <button class="source-btn ${sourcePrio==='vidsrcxyz'?'active':''}" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrcxyz',this)">VidSrc.xyz</button>
+            <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','autoembed',this)">AutoEmbed</button>
+            <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','moviesapi',this)">MoviesAPI</button>
+          </div>
+        </div>`;
+
+      saveToHistory({ id, type, title, poster: detail.poster_path || '', rating: detail.vote_average?.toFixed(1) || '' });
+    }
+  } else {
+    infoEl.innerHTML = `
+      <div class="player-title">Now Playing</div>
+      <div class="source-switcher">
+        <h3>Switch Source</h3>
+        <div class="source-btns">
+          <button class="source-btn active" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrc',this)">VidSrc</button>
+          <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','2embed',this)">2Embed</button>
+          <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrcxyz',this)">VidSrc.xyz</button>
+          <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','autoembed',this)">AutoEmbed</button>
+        </div>
+      </div>`;
+  }
+}
+
+function getEmbedUrl(id, type, season, episode, source) {
+  switch(source) {
+    case 'vidsrc':
+      return type === 'tv'
+        ? `https://vidsrc.to/embed/tv/${id}/${season}/${episode}`
+        : `https://vidsrc.to/embed/movie/${id}`;
+    case '2embed':
+      return type === 'tv'
+        ? `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`
+        : `https://www.2embed.cc/embed/${id}`;
+    case 'vidsrcxyz':
+      return type === 'tv'
+        ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`
+        : `https://vidsrc.xyz/embed/movie?tmdb=${id}`;
+    case 'autoembed':
+      return type === 'tv'
+        ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`
+        : `https://player.autoembed.cc/embed/movie/${id}`;
+    case 'moviesapi':
+      return type === 'tv'
+        ? `https://moviesapi.club/tv/${id}-${season}-${episode}`
+        : `https://moviesapi.club/movie/${id}`;
+    default:
+      return getEmbedUrl(id, type, season, episode, 'vidsrc');
+  }
+}
+
+function buildEmbedPlayer(id, type, season, episode, source = 'vidsrc') {
+  const url = getEmbedUrl(id, type, season, episode, source);
+  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>`;
+}
+
+function switchSource(id, type, season, episode, source, btn) {
+  document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const wrapper = document.getElementById('player-wrapper');
+  wrapper.innerHTML = buildEmbedPlayer(id, type, season, episode, source);
+  showToast(`Switched to ${btn.textContent}`);
+}
+
+// ─── SEARCH ───
+let searchTimer = null;
+function debounceSearch(val) {
+  clearTimeout(searchTimer);
+  // Sync both search inputs
+  document.getElementById('nav-search').value = val;
+  const si = document.getElementById('search-input');
+  if (si) si.value = val;
+  if (!val.trim()) {
+    const r = document.getElementById('search-results');
+    const e = document.getElementById('search-empty');
+    if (r) r.innerHTML = '';
+    if (e) e.style.display = 'flex';
+    return;
+  }
+  if (APP.currentPage !== 'search') navigate('search');
+  searchTimer = setTimeout(() => runSearch(val), 300);
+}
+
+async function runSearch(query) {
+  const r = document.getElementById('search-results');
+  const e = document.getElementById('search-empty');
+  if (!r) return;
+  if (e) e.style.display = 'none';
+  r.innerHTML = skeleton(8);
+
+  const [tmdbRes, animeRes] = await Promise.all([
+    APP.tmdbKey ? tmdb('/search/multi', { query, include_adult: false }) : null,
+    consumetFetch(`/anime/gogoanime?search=${encodeURIComponent(query)}`),
+  ]);
+
+  let results = [];
+  if (tmdbRes?.results) {
+    results = tmdbRes.results.filter(i => ['movie','tv'].includes(i.media_type) && (i.poster_path || i.backdrop_path));
+  }
+
+  const animeItems = (animeRes?.results || []).map(a => ({ ...a, _type: 'anime' }));
+  const allItems = [...results, ...animeItems];
+
+  const filtered = APP.searchFilter === 'all'
+    ? allItems
+    : allItems.filter(i => {
+        if (APP.searchFilter === 'movie') return i.media_type === 'movie';
+        if (APP.searchFilter === 'tv') return i.media_type === 'tv';
+        if (APP.searchFilter === 'anime') return i._type === 'anime';
+        return true;
+      });
+
+  if (!filtered.length) {
+    r.innerHTML = '';
+    if (e) { e.style.display = 'flex'; e.querySelector('h2').textContent = 'No results'; e.querySelector('p').textContent = `Nothing found for "${query}"`; }
+    return;
+  }
+
+  r.innerHTML = filtered.map(i => {
+    const type = i._type || i.media_type || 'movie';
+    return buildCard(i, type);
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  APP.searchFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const q = document.getElementById('search-input')?.value;
+  if (q) runSearch(q);
+}
+
+function clearSearch() {
+  const si = document.getElementById('search-input');
+  if (si) si.value = '';
+  document.getElementById('nav-search').value = '';
+  const r = document.getElementById('search-results');
+  const e = document.getElementById('search-empty');
+  if (r) r.innerHTML = '';
+  if (e) { e.style.display = 'flex'; e.querySelector('h2').textContent = 'Start searching'; e.querySelector('p').textContent = 'Find movies, series, and anime'; }
+}
+
+function toggleSearch() {
+  const wrap = document.getElementById('search-expand');
+  const inp = document.getElementById('nav-search');
+  if (wrap.classList.toggle('open')) {
+    inp.focus();
+    navigate('search');
+  }
+}
+
+// ─── HISTORY ───
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('ch_history') || '[]'); } catch { return []; }
+}
+function saveToHistory(item) {
+  let h = getHistory();
+  h = h.filter(i => !(i.id == item.id && i.type === item.type));
+  h.unshift({ ...item, watchedAt: Date.now() });
+  h = h.slice(0, 100);
+  localStorage.setItem('ch_history', JSON.stringify(h));
+}
+function removeFromHistory(id, type) {
+  let h = getHistory().filter(i => !(i.id == id && i.type === type));
+  localStorage.setItem('ch_history', JSON.stringify(h));
+  loadHistoryPage();
+  showToast('Removed from history');
+}
+
+function getProgress(id, type) {
+  try {
+    const p = JSON.parse(localStorage.getItem('ch_progress') || '{}');
+    return p[`${type}_${id}`] || 0;
+  } catch { return 0; }
+}
+
+function loadHistoryPage() {
+  const grid = document.getElementById('history-grid');
+  const h = getHistory();
+  if (!h.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-history"></i><h2>No watch history</h2><p>Start watching to see your history here</p></div>';
+    return;
+  }
+  grid.innerHTML = h.map(item => {
+    const poster = item.poster
+      ? img(item.poster)
+      : `https://placehold.co/160x240/141414/444?text=${encodeURIComponent((item.title||'').slice(0,8))}`;
+    const date = new Date(item.watchedAt).toLocaleDateString();
+    const progress = getProgress(item.id, item.type);
+    return `
+      <div class="history-card" onclick="openDetail('${item.id}','${item.type}')">
+        <img src="${poster}" alt="${item.title}" loading="lazy" onerror="this.src='https://placehold.co/160x240/141414/444?text=N/A'">
+        <div class="history-card-body">
+          <div class="history-card-title">${item.title||'Unknown'}</div>
+          <div class="history-card-date">${date}</div>
+          ${progress > 0 ? `<div class="history-progress"><div class="history-progress-fill" style="width:${progress}%"></div></div>` : ''}
+        </div>
+        <button class="history-remove" onclick="event.stopPropagation();removeFromHistory('${item.id}','${item.type}')"><i class="fas fa-times"></i></button>
+      </div>`;
+  }).join('');
+}
+
+function confirmClearHistory() {
+  showModal('Clear History', 'Remove all watch history? This cannot be undone.', () => {
+    localStorage.removeItem('ch_history');
+    loadHistoryPage();
+    showToast('History cleared');
+  });
+}
+
+// ─── WATCHLIST ───
+function getWatchlist() {
+  try { return JSON.parse(localStorage.getItem('ch_watchlist') || '[]'); } catch { return []; }
+}
+function toggleWatchlist(id, type, title, poster, rating) {
+  let wl = getWatchlist();
+  const exists = wl.findIndex(w => w.id == id && w.type === type);
+  const btn = document.getElementById('watchlist-btn');
+  if (exists >= 0) {
+    wl.splice(exists, 1);
+    showToast('Removed from Watchlist');
+    if (btn) btn.innerHTML = '<i class="fas fa-plus"></i> Watchlist';
+  } else {
+    wl.unshift({ id, type, title, poster, rating, addedAt: Date.now() });
+    showToast('Added to Watchlist ✓');
+    if (btn) btn.innerHTML = '<i class="fas fa-check watchlist-icon added"></i> Watchlisted';
+  }
+  localStorage.setItem('ch_watchlist', JSON.stringify(wl));
+}
+
+// ─── DOWNLOADS ───
+function getDownloads() {
+  try { return JSON.parse(localStorage.getItem('ch_downloads') || '[]'); } catch { return []; }
+}
+function downloadItem(id, type, title, poster, rating) {
+  let dl = getDownloads();
+  if (dl.some(d => d.id == id)) { showToast('Already saved'); return; }
+  dl.unshift({ id, type, title, poster, rating, savedAt: Date.now() });
+  localStorage.setItem('ch_downloads', JSON.stringify(dl));
+  showToast('Saved for offline viewing ✓');
+}
+function removeDownload(id) {
+  let dl = getDownloads().filter(d => d.id != id);
+  localStorage.setItem('ch_downloads', JSON.stringify(dl));
+  loadDownloadsPage();
+  showToast('Removed from downloads');
+}
+
+function loadDownloadsPage() {
+  const grid = document.getElementById('downloads-grid');
+  const si = document.getElementById('storage-info');
+  const dl = getDownloads();
+
+  if (navigator.storage?.estimate) {
+    navigator.storage.estimate().then(({ usage, quota }) => {
+      const used = (usage / 1048576).toFixed(1);
+      const total = (quota / 1048576 / 1024).toFixed(1);
+      if (si) si.textContent = `Storage: ${used} MB used of ${total} GB available`;
+    });
+  }
+
+  if (!dl.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-download"></i><h2>No downloads</h2><p>Save content to watch offline</p></div>';
+    return;
+  }
+
+  grid.innerHTML = dl.map(item => {
+    const poster = item.poster ? img(item.poster) : `https://placehold.co/160x240/141414/444?text=${encodeURIComponent((item.title||'').slice(0,8))}`;
+    return `
+      <div class="history-card" onclick="openPlayer('${item.id}','${item.type}',1,1)">
+        <img src="${poster}" alt="${item.title}" loading="lazy">
+        <div class="history-card-body">
+          <div class="history-card-title">${item.title}</div>
+          <div class="history-card-date">Saved ${new Date(item.savedAt).toLocaleDateString()}</div>
+        </div>
+        <button class="history-remove" onclick="event.stopPropagation();removeDownload('${item.id}')"><i class="fas fa-times"></i></button>
+      </div>`;
+  }).join('');
+}
+
+// ─── SHARE ───
+function shareItem(title) {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: `Watch ${title} on CloudHub`, url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
+  }
+}
+
+// ─── SETTINGS ───
+function openSettings() {
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('settings-drawer').classList.add('open');
+  // Load current values
+  document.getElementById('s-tmdb-key').value = APP.tmdbKey;
+  document.getElementById('s-sub-lang').value = APP.settings.subLang;
+  document.getElementById('s-source-prio').value = APP.settings.sourcePrio;
+  document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay);
+  setAnimePref(APP.settings.animePref, true);
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+  document.getElementById('settings-drawer').classList.remove('open');
+  saveSettings();
+}
+function saveSettings() {
+  const key = document.getElementById('s-tmdb-key').value.trim();
+  if (key && key !== APP.tmdbKey) {
+    APP.tmdbKey = key;
+    localStorage.setItem('ch_tmdb_key', key);
+    APP.cache = {}; // Clear cache so new key takes effect
+    showToast('API key saved ✓');
+    if (APP.currentPage === 'home') loadHome();
+  }
+  APP.settings.subLang = document.getElementById('s-sub-lang').value;
+  APP.settings.sourcePrio = document.getElementById('s-source-prio').value;
+  APP.settings.autoplay = document.getElementById('s-autoplay').classList.contains('on');
+  localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
+}
+
+function setAnimePref(pref, silent = false) {
+  APP.settings.animePref = pref;
+  const dubBtn = document.getElementById('s-anime-dub');
+  const subBtn = document.getElementById('s-anime-sub');
+  if (dubBtn && subBtn) {
+    dubBtn.style.background = pref === 'dub' ? 'var(--red)' : 'transparent';
+    dubBtn.style.color = pref === 'dub' ? 'white' : 'var(--text2)';
+    subBtn.style.background = pref === 'sub' ? 'var(--red)' : 'transparent';
+    subBtn.style.color = pref === 'sub' ? 'white' : 'var(--text2)';
+  }
+  if (!silent) { localStorage.setItem('ch_settings', JSON.stringify(APP.settings)); showToast(`Default: ${pref.toUpperCase()}`); }
+}
+
+function confirmClearAll() {
+  showModal('Clear All Data', 'This will remove your API key, history, downloads, and all preferences. This cannot be undone.', () => {
+    localStorage.clear();
+    APP.tmdbKey = '';
+    APP.settings = {};
+    APP.cache = {};
+    closeSettings();
+    showToast('All data cleared');
+    navigate('home');
+  });
+}
+
+// ─── API BANNER ───
+function showApiBanner() {
+  const b = document.getElementById('api-banner');
+  if (b) b.style.display = 'flex';
+}
+function hideApiBanner() {
+  const b = document.getElementById('api-banner');
+  if (b) b.style.display = 'none';
+}
+
+// ─── TOAST ───
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── MODAL ───
+let modalCallback = null;
+function showModal(title, msg, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent = msg;
+  modalCallback = onConfirm;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  modalCallback = null;
+}
+document.getElementById('modal-confirm-btn').onclick = () => {
+  if (modalCallback) modalCallback();
+  closeModal();
+};
+
+// ─── OFFLINE ───
+window.addEventListener('online', () => document.getElementById('offline-banner').classList.remove('show'));
+window.addEventListener('offline', () => document.getElementById('offline-banner').classList.add('show'));
+if (!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
+
+// ─── GENRE MAP (TMDB) ───
+const GENRE_MAP = {
+  28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',
+  99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',
+  27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',
+  10770:'TV Movie',53:'Thriller',10752:'War',37:'Western',
+  10759:'Action & Adventure',10762:'Kids',10763:'News',10764:'Reality',
+  10765:'Sci-Fi & Fantasy',10766:'Soap',10767:'Talk',10768:'War & Politics'
+};
+
+// ─── HINDI CARTOONS (Static) ───
+const HINDI_CARTOONS = [
+  { id: 'doraemon', tmdbId: 10511, type: 'tv', title: 'Doraemon', image: 'https://image.tmdb.org/t/p/w342/bjXacJT8u8bVCRCMlNTX1BCTWI2.jpg', vote_average: 8.2, release_date: '1979' },
+  { id: 'shinchan', tmdbId: 2643, type: 'tv', title: 'Shinchan', image: 'https://image.tmdb.org/t/p/w342/t1dSfKLxLuWMqHaqEf9eUiRanFv.jpg', vote_average: 8.5, release_date: '1992' },
+  { id: 'ninjahat', tmdbId: 14544, type: 'tv', title: 'Ninja Hattori', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Ninja+Hattori', vote_average: 8.0, release_date: '1981' },
+  { id: 'motupatlu', tmdbId: 0, type: 'tv', title: 'Motu Patlu', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Motu+Patlu', vote_average: 7.5, release_date: '2012' },
+  { id: 'chhotabheem', tmdbId: 0, type: 'tv', title: 'Chhota Bheem', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Chhota+Bheem', vote_average: 8.1, release_date: '2008' },
+  { id: 'pkid', tmdbId: 0, type: 'tv', title: 'Pkid', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=P.Kid', vote_average: 7.0, release_date: '2010' },
+];
+
+// ─── SERVICE WORKER ───
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'cloudhub-v1';
+    const SHELL = ['/', '/index.html'];
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(caches.keys().then(keys =>
+        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      ));
+      self.clients.claim();
+    });
+    self.addEventListener('fetch', e => {
+      if (e.request.method !== 'GET') return;
+      if (e.request.url.includes('api.themoviedb.org') || e.request.url.includes('consumet')) return;
+      e.respondWith(
+        caches.match(e.request).then(cached => {
+          if (cached) return cached;
+          return fetch(e.request).then(res => {
+            if (res.ok && e.request.url.startsWith(self.location.origin)) {
+              const clone = res.clone();
+              caches.open(CACHE).then(c => c.put(e.request, clone));
+            }
+            return res;
+          }).catch(() => caches.match('/'));
+        })
+      );
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'text/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(e => console.warn('SW:', e));
+}
+
+// ─── PWA MANIFEST ───
+const manifest = {
+  name: 'CloudHub', short_name: 'CloudHub', start_url: '/',
+  display: 'standalone', background_color: '#0A0A0A', theme_color: '#E50914',
+  icons: [{ src: 'https://placehold.co/192x192/E50914/ffffff?text=CH', sizes: '192x192', type: 'image/png' },
+          { src: 'https://placehold.co/512x512/E50914/ffffff?text=CH', sizes: '512x512', type: 'image/png' }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const manifestUrl = URL.createObjectURL(manifestBlob);
+const manifestLink = document.createElement('link');
+manifestLink.rel = 'manifest';
+manifestLink.href = manifestUrl;
+document.head.appendChild(manifestLink);
+
+// ─── INIT ───
+loadHome();
+</script>
+</body>
+</html>
