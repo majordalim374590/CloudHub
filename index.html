@@ -1254,39 +1254,81 @@ body {
 /* Watchlist added icon */
 .watchlist-icon.added { color: var(--red) !important; }
 
-/* ── PLAYER LOADER OVERLAY ── */
-#player-loader {
-  position: absolute;
-  inset: 0;
-  background: #000;
+/* ── PIN MODAL ── */
+.pin-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.pin-dot.filled {
+  background: var(--red);
+  border-color: var(--red);
+}
+.pin-key {
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.pin-key:hover { background: var(--surface3); border-color: rgba(255,255,255,0.3); }
+.pin-key:empty { cursor: default; background: transparent; border-color: transparent; }
+
+/* Adult page cards */
+.adult-site-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 30px;
+}
+.adult-site-card {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  z-index: 5;
-  aspect-ratio: 16/9;
-  pointer-events: none;
+  gap: 10px;
 }
-#player-loader .loader-spinner {
-  width: 48px; height: 48px;
-  border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: var(--red);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.adult-site-card:hover {
+  border-color: var(--red);
+  background: var(--surface2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
-#player-loader .loader-text {
-  font-size: 13px;
-  color: rgba(255,255,255,0.5);
-  letter-spacing: 0.5px;
+.adult-site-icon {
+  font-size: 36px;
+  width: 64px; height: 64px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
 }
-#player-loader .loader-hint {
-  font-size: 11px;
-  color: rgba(255,255,255,0.3);
-  text-align: center;
-  max-width: 260px;
-  line-height: 1.5;
+.adult-site-name { font-size: 15px; font-weight: 700; }
+.adult-site-desc { font-size: 12px; color: var(--text2); }
+.adult-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  margin-top: 4px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
 </style>
 </head>
 <body>
@@ -1317,7 +1359,7 @@ body {
     <button class="icon-btn" onclick="navigate('history')" title="History"><i class="fas fa-history"></i></button>
     <button class="icon-btn" onclick="navigate('downloads')" title="Downloads"><i class="fas fa-download"></i></button>
     <button class="icon-btn" onclick="openSettings()" title="Settings"><i class="fas fa-cog"></i></button>
-    <button class="profile-btn">U</button>
+    <button class="profile-btn" onclick="openAdultPage()" title="Profile" style="position:relative;">U</button>
   </div>
 </nav>
 
@@ -1452,6 +1494,18 @@ body {
     <div id="storage-info" style="padding:0 4% 16px;font-size:13px;color:var(--text2);"></div>
     <div class="history-grid" id="downloads-grid"></div>
   </div>
+  <!-- ADULT CONTENT PAGE (Hidden / PIN protected) -->
+  <div id="page-adult18" class="page">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1>🔞 Adult Hub</h1>
+        <p style="color:var(--text2);">Premium adult content — 18+ only</p>
+      </div>
+      <button class="btn btn-grey btn-sm" onclick="lockAdultPage()"><i class="fas fa-lock"></i> Lock</button>
+    </div>
+    <div class="category-tabs" id="adult-cats"></div>
+    <div id="adult-content-area" style="padding:0 4% 80px;"></div>
+  </div>
 
 </div><!-- #app -->
 
@@ -1505,15 +1559,15 @@ body {
   <div class="settings-section">
     <div class="settings-label">Default Player Source</div>
     <select class="settings-select" id="s-source-prio">
-      <option value="autoembed">AutoEmbed ⭐ Recommended</option>
-      <option value="multiembed">MultiEmbed</option>
-      <option value="embedsu">EmbedSu</option>
-      <option value="2embed">2Embed.cc</option>
-      <option value="vidsrcme">VidSrc.cc</option>
+      <option value="vidsrcme">VidSrc.me ⭐ Recommended</option>
       <option value="vidsrc">VidSrc.to</option>
-      <option value="vidsrcxyz">VidSrc.xyz</option>
+      <option value="embedsu">EmbedSu</option>
       <option value="smashystream">SmashyStream</option>
       <option value="rivestream">RiveStream</option>
+      <option value="2embed">2Embed.cc</option>
+      <option value="vidsrcxyz">VidSrc.xyz</option>
+      <option value="autoembed">AutoEmbed</option>
+      <option value="multiembed">MultiEmbed</option>
       <option value="moviesapi">MoviesAPI</option>
       <option value="nontongo">NontonGo</option>
     </select>
@@ -1527,6 +1581,34 @@ body {
 
   <div style="margin-top:12px;text-align:center;font-size:11px;color:var(--text3);">
     CloudHub v2.0 · Personal Use Only
+  </div>
+</div>
+
+<!-- ADULT PIN MODAL -->
+<div class="modal-overlay" id="adult-pin-modal">
+  <div class="modal" style="max-width:340px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:36px;margin-bottom:8px;">🔐</div>
+      <h3 id="adult-pin-title">Enter PIN</h3>
+      <p id="adult-pin-subtitle" style="font-size:13px;color:var(--text2);">Enter your 4-digit PIN to access adult content</p>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;" id="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 16px;">
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => `
+        <button class="pin-key" onclick="pinKey('${k}')">${k}</button>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-grey btn-sm" style="flex:1;" onclick="closeAdultPin()">Cancel</button>
+      <button class="btn btn-red btn-sm" style="flex:1;" id="adult-pin-action-btn" onclick="confirmAdultPin()">Unlock</button>
+    </div>
+    <p style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3);">
+      <span onclick="resetAdultPin()" style="cursor:pointer;color:var(--red);">Forgot PIN? Reset</span>
+    </p>
   </div>
 </div>
 
@@ -1619,6 +1701,7 @@ function navigate(page, params = {}) {
     case 'downloads': loadDownloadsPage(); break;
     case 'detail': loadDetailPage(params); break;
     case 'player': loadPlayerPage(params); break;
+    case 'adult18': loadAdultPage(); break;
   }
 }
 
@@ -1737,19 +1820,24 @@ function buildCard(item, type = 'movie') {
   const rating = rawRating ? parseFloat(rawRating).toFixed(1) : '?';
   const year = (item.release_date || item.first_air_date || item.startDate?.year || '').toString().slice(0,4);
 
-  const progress = getProgress(id, type);
+  // For "Continue Watching" cards, use the actual saved type from history
+  const clickType = type === 'continue' ? (item._histType || 'movie') : type;
+
+  const progress = getProgress(id, clickType);
   const progressBar = progress > 0
     ? `<div class="card-progress"><div class="card-progress-fill" style="width:${progress}%"></div></div>`
     : '';
 
-  const badge = type === 'anime'
+  const badge = clickType === 'anime'
     ? `<span class="badge badge-left badge-sub">ANIME</span>`
-    : type === 'hindi'
+    : clickType === 'hindi'
     ? `<span class="badge badge-left badge-hindi">HINDI</span>`
+    : type === 'continue'
+    ? `<span class="badge badge-left" style="background:var(--red);color:white;">▶ CONTINUE</span>`
     : `<span class="badge badge-right badge-hd">HD</span>`;
 
   return `
-    <div class="card" onclick="openDetail('${id}','${type}')">
+    <div class="card" onclick="openDetail('${id}','${clickType}')">
       <div class="card-img-wrap">
         <img src="${poster}" alt="${title}" loading="lazy" onerror="this.src='https://placehold.co/160x240/141414/444?text=N/A'">
         ${badge}
@@ -1805,7 +1893,7 @@ async function loadHome() {
   let html = '';
   if (history.length > 0) {
     html += buildRow('🕐 Continue Watching', history.slice(0,15).map(h => ({
-      id: h.id, title: h.title, poster_path: h.poster, vote_average: h.rating
+      id: h.id, title: h.title, poster_path: h.poster, vote_average: h.rating, _histType: h.type
     })), 'continue', 'history');
   }
 
@@ -2358,9 +2446,63 @@ function toggleDesc() {
   }
 }
 
-// ─── PLAYER ───
+// ─── LANGUAGE PICKER ───
 function openPlayer(id, type, season = 1, episode = 1) {
-  navigate('player', { id, type, season, episode });
+  // Anime and live don't need language picker
+  if (type === 'anime' || type === 'live') {
+    navigate('player', { id, type, season, episode });
+    return;
+  }
+  showLanguagePicker(id, type, season, episode);
+}
+
+function showLanguagePicker(id, type, season, episode) {
+  const existing = document.getElementById('lang-picker-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'lang-picker-overlay';
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:4000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;`;
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.08);">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:8px;">🌐</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Choose Language</h3>
+        <p style="font-size:13px;color:var(--text2);">Select your preferred audio/dub language</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button onclick="pickLangAndPlay('${id}','${type}','${season}','${episode}','original')" style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:14px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+          <span style="font-size:22px;">🎬</span>
+          <div style="text-align:left;">
+            <div>Original Language</div>
+            <div style="font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">Native / Original audio track</div>
+          </div>
+        </button>
+        <button onclick="pickLangAndPlay('${id}','${type}','${season}','${episode}','hindi')" style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:14px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;" onmouseover="this.style.borderColor='#FF6D00'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+          <span style="font-size:22px;">🇮🇳</span>
+          <div style="text-align:left;">
+            <div>हिंदी (Hindi)</div>
+            <div style="font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">Hindi dubbed version</div>
+          </div>
+        </button>
+        <button onclick="pickLangAndPlay('${id}','${type}','${season}','${episode}','english')" style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);color:var(--text);padding:14px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;" onmouseover="this.style.borderColor='#1565C0'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+          <span style="font-size:22px;">🇬🇧</span>
+          <div style="text-align:left;">
+            <div>English</div>
+            <div style="font-size:11px;color:var(--text2);font-weight:400;margin-top:2px;">English dubbed / audio track</div>
+          </div>
+        </button>
+      </div>
+      <button onclick="document.getElementById('lang-picker-overlay').remove()" style="margin-top:16px;width:100%;background:transparent;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:8px;font-family:inherit;">✕ Cancel</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function pickLangAndPlay(id, type, season, episode, lang) {
+  const overlay = document.getElementById('lang-picker-overlay');
+  if (overlay) overlay.remove();
+  APP.playerLang = lang;
+  navigate('player', { id, type, season: parseInt(season), episode: parseInt(episode), lang });
 }
 
 function playAnimeEpisode(epId, title, animeId) {
@@ -2376,14 +2518,9 @@ async function loadPlayerPage(params) {
     // Remove old iframe/video if any
     const old = wrapper.querySelector('iframe, video');
     if (old) old.remove();
-    showPlayerLoader(wrapper);
     const div = document.createElement('div');
     div.innerHTML = html;
     const el = div.firstElementChild;
-    // Hide loader when iframe fires load
-    if (el.tagName === 'IFRAME') {
-      el.addEventListener('load', () => hidePlayerLoader(), { once: true });
-    }
     wrapper.appendChild(el);
   }
 
@@ -2454,32 +2591,33 @@ async function loadPlayerPage(params) {
   }
 
   // ── MOVIE / TV ──
-  const { id, type, season, episode } = params;
-  const sourcePrio = APP.settings.sourcePrio || 'autoembed';
+  const { id, type, season, episode, lang } = params;
+  const sourcePrio = APP.settings.sourcePrio || 'vidsrcme';
 
-  injectPlayer(buildIframe(getEmbedUrl(id, type, season, episode, sourcePrio)));
+  injectPlayer(buildIframe(getEmbedUrl(id, type, season, episode, sourcePrio, lang)));
 
   const epLabel = type === 'tv' ? ` · S${String(season).padStart(2,'0')}E${String(episode).padStart(2,'0')}` : '';
 
   function buildSourcePanel(title) {
     const sources = [
-      { key: 'autoembed',    label: 'AutoEmbed' },
-      { key: 'multiembed',   label: 'MultiEmbed' },
-      { key: 'embedsu',      label: 'EmbedSu' },
-      { key: '2embed',       label: '2Embed' },
-      { key: 'vidsrcme',     label: 'VidSrc.cc' },
+      { key: 'vidsrcme',     label: 'VidSrc.me' },
       { key: 'vidsrc',       label: 'VidSrc.to' },
-      { key: 'vidsrcxyz',    label: 'VidSrc.xyz' },
+      { key: 'embedsu',      label: 'EmbedSu' },
       { key: 'smashystream', label: 'Smashy' },
       { key: 'rivestream',   label: 'Rive' },
+      { key: '2embed',       label: '2Embed' },
+      { key: 'vidsrcxyz',    label: 'VidSrc.xyz' },
+      { key: 'autoembed',    label: 'AutoEmbed' },
+      { key: 'multiembed',   label: 'MultiEmbed' },
       { key: 'moviesapi',    label: 'MoviesAPI' },
       { key: 'nontongo',     label: 'NontonGo' },
     ];
+    const langLabel = lang === 'hindi' ? ' 🇮🇳 Hindi' : lang === 'english' ? ' 🇬🇧 English' : ' 🎬 Original';
     return `
       <div class="source-switcher">
-        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source — try another if buffering</div>
+        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source — try another if buffering &nbsp;<span style="font-size:11px;color:var(--amber);">${langLabel}</span></div>
         <div class="source-btns">
-          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" onclick="switchSource('${id}','${type}','${season}','${episode}','${s.key}',this)">${s.label}</button>`).join('')}
+          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" onclick="switchSource('${id}','${type}','${season}','${episode}','${s.key}',this,'${lang||'original'}')">${s.label}</button>`).join('')}
         </div>
       </div>`;
   }
@@ -2508,8 +2646,44 @@ async function loadPlayerPage(params) {
   }
 }
 
-function getEmbedUrl(id, type, season, episode, source) {
+function getEmbedUrl(id, type, season, episode, source, lang = 'original') {
   const isTV = type === 'tv';
+  // Hindi dub: prefer multiembed (supports lang param) then hindilinks-style sources
+  if (lang === 'hindi') {
+    switch(source) {
+      case 'multiembed':
+        return isTV
+          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=hi`
+          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=hi`;
+      case 'vidsrcme':
+        return isTV
+          ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}&ds_lang=hi`
+          : `https://vidsrc.me/embed/movie?tmdb=${id}&ds_lang=hi`;
+      case 'autoembed':
+        return isTV
+          ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}?lang=hi`
+          : `https://player.autoembed.cc/embed/movie/${id}?lang=hi`;
+      default:
+        // For Hindi, default to multiembed which best supports it
+        return isTV
+          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=hi`
+          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=hi`;
+    }
+  }
+  // English dub
+  if (lang === 'english') {
+    switch(source) {
+      case 'multiembed':
+        return isTV
+          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=en`
+          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=en`;
+      default:
+        return isTV
+          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=en`
+          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=en`;
+    }
+  }
+  // Original / default
   switch(source) {
     case 'vidsrc':
       return isTV
@@ -2517,8 +2691,8 @@ function getEmbedUrl(id, type, season, episode, source) {
         : `https://vidsrc.to/embed/movie/${id}`;
     case 'vidsrcme':
       return isTV
-        ? `https://vidsrc.cc/v2/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.cc/v2/embed/movie/${id}`;
+        ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`
+        : `https://vidsrc.me/embed/movie?tmdb=${id}`;
     case '2embed':
       return isTV
         ? `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`
@@ -2556,55 +2730,31 @@ function getEmbedUrl(id, type, season, episode, source) {
         ? `https://www.NontonGo.net/embed/tv/${id}/${season}/${episode}`
         : `https://www.NontonGo.net/embed/movie/${id}`;
     default:
-      return getEmbedUrl(id, type, season, episode, 'autoembed');
+      return getEmbedUrl(id, type, season, episode, 'vidsrcme', lang);
   }
-}
-
-// ── PLAYER LOADER OVERLAY ──
-function showPlayerLoader(wrapper) {
-  let loader = document.getElementById('player-loader');
-  if (!loader) {
-    loader = document.createElement('div');
-    loader.id = 'player-loader';
-    loader.innerHTML = `
-      <div class="loader-spinner"></div>
-      <div class="loader-text">Loading player…</div>
-      <div class="loader-hint">If it stays black, try another source below</div>`;
-    wrapper.appendChild(loader);
-  }
-  loader.style.display = 'flex';
-  // Auto-hide after 12s as fallback
-  clearTimeout(window._loaderTimer);
-  window._loaderTimer = setTimeout(() => hidePlayerLoader(), 12000);
-}
-function hidePlayerLoader() {
-  const loader = document.getElementById('player-loader');
-  if (loader) loader.style.display = 'none';
-  clearTimeout(window._loaderTimer);
 }
 
 function buildIframe(url) {
-  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer" referrerpolicy="no-referrer" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
 }
 
 function buildEmbedPlayer(id, type, season, episode, source = 'vidsrcme') {
   return buildIframe(getEmbedUrl(id, type, season, episode, source));
 }
 
-function switchSource(id, type, season, episode, source, btn) {
+function switchSource(id, type, season, episode, source, btn, lang = 'original') {
   document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const wrapper = document.getElementById('player-wrapper');
   const old = wrapper.querySelector('iframe, video');
   if (old) old.remove();
-  showPlayerLoader(wrapper);
   const iframe = document.createElement('iframe');
-  iframe.src = getEmbedUrl(id, type, season, episode, source);
+  iframe.src = getEmbedUrl(id, type, season, episode, source, lang);
   iframe.allowFullscreen = true;
-  iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer';
-  iframe.setAttribute('referrerpolicy', 'no-referrer');
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.setAttribute('referrerpolicy', 'origin');
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
-  iframe.onload = () => hidePlayerLoader();
   wrapper.appendChild(iframe);
   showToast(`▶ Switched to ${btn.textContent}`);
 }
@@ -2615,14 +2765,13 @@ function switchAnimeSource(url, btn) {
   const wrapper = document.getElementById('player-wrapper');
   const old = wrapper.querySelector('iframe, video');
   if (old) old.remove();
-  showPlayerLoader(wrapper);
   const iframe = document.createElement('iframe');
   iframe.src = url;
   iframe.allowFullscreen = true;
-  iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer';
-  iframe.setAttribute('referrerpolicy', 'no-referrer');
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.setAttribute('referrerpolicy', 'origin');
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
-  iframe.onload = () => hidePlayerLoader();
   wrapper.appendChild(iframe);
   showToast(`▶ Switched to ${btn.textContent}`);
 }
@@ -3032,6 +3181,145 @@ const manifestLink = document.createElement('link');
 manifestLink.rel = 'manifest';
 manifestLink.href = manifestUrl;
 document.head.appendChild(manifestLink);
+
+// ─── ADULT CONTENT (PIN PROTECTED) ───
+const ADULT_PIN_KEY = 'ch_adult_pin';
+const ADULT_UNLOCKED_KEY = 'ch_adult_unlocked';
+let _pinBuffer = '';
+let _pinMode = 'unlock'; // 'unlock' | 'set'
+
+const ADULT_SITES = [
+  {
+    cat: '🎬 Adult Movies & Video',
+    sites: [
+      { name: 'XVideos', icon: '▶', color: '#1a1a1a', border: '#c00', desc: 'Free adult videos', url: 'https://xvideos.com' },
+      { name: 'Pornhub', icon: '🎥', color: '#1a1a1a', border: '#ff9000', desc: 'World\'s largest adult site', url: 'https://pornhub.com' },
+      { name: 'RedTube', icon: '🔴', color: '#1a1a1a', border: '#d40000', desc: 'Free streaming videos', url: 'https://redtube.com' },
+      { name: 'SpankBang', icon: '⚡', color: '#1a1a1a', border: '#e44', desc: 'HD adult content', url: 'https://spankbang.com' },
+    ]
+  },
+];
+
+function openAdultPage() {
+  const stored = localStorage.getItem(ADULT_PIN_KEY);
+  const unlocked = sessionStorage.getItem(ADULT_UNLOCKED_KEY);
+  if (!stored) {
+    _pinMode = 'set';
+    showAdultPinModal('Set a PIN', 'Create a 4-digit PIN to protect this section', 'Set PIN');
+  } else if (!unlocked) {
+    _pinMode = 'unlock';
+    showAdultPinModal('Enter PIN 🔐', 'Enter your PIN to access adult content', 'Unlock');
+  } else {
+    navigate('adult18');
+  }
+}
+
+function showAdultPinModal(title, sub, actionLabel) {
+  _pinBuffer = '';
+  updatePinDots();
+  document.getElementById('adult-pin-title').textContent = title;
+  document.getElementById('adult-pin-subtitle').textContent = sub;
+  document.getElementById('adult-pin-action-btn').textContent = actionLabel;
+  document.getElementById('adult-pin-modal').classList.add('open');
+}
+
+function closeAdultPin() {
+  document.getElementById('adult-pin-modal').classList.remove('open');
+  _pinBuffer = '';
+  updatePinDots();
+}
+
+function pinKey(k) {
+  if (k === '⌫') {
+    _pinBuffer = _pinBuffer.slice(0, -1);
+  } else if (k !== '' && _pinBuffer.length < 4) {
+    _pinBuffer += k;
+  }
+  updatePinDots();
+  if (_pinBuffer.length === 4) setTimeout(confirmAdultPin, 200);
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d' + i);
+    if (d) d.classList.toggle('filled', i < _pinBuffer.length);
+  }
+}
+
+function confirmAdultPin() {
+  if (_pinBuffer.length < 4) { showToast('Enter 4 digits'); return; }
+  const stored = localStorage.getItem(ADULT_PIN_KEY);
+  if (_pinMode === 'set') {
+    localStorage.setItem(ADULT_PIN_KEY, _pinBuffer);
+    sessionStorage.setItem(ADULT_UNLOCKED_KEY, '1');
+    closeAdultPin();
+    showToast('🔐 PIN set! Section unlocked.');
+    navigate('adult18');
+  } else {
+    if (_pinBuffer === stored) {
+      sessionStorage.setItem(ADULT_UNLOCKED_KEY, '1');
+      closeAdultPin();
+      navigate('adult18');
+    } else {
+      showToast('❌ Wrong PIN');
+      _pinBuffer = '';
+      updatePinDots();
+    }
+  }
+}
+
+function resetAdultPin() {
+  localStorage.removeItem(ADULT_PIN_KEY);
+  sessionStorage.removeItem(ADULT_UNLOCKED_KEY);
+  closeAdultPin();
+  showToast('PIN reset. Set a new one next time.');
+}
+
+function lockAdultPage() {
+  sessionStorage.removeItem(ADULT_UNLOCKED_KEY);
+  navigate('home');
+  showToast('🔒 Section locked');
+}
+
+function loadAdultPage() {
+  const area = document.getElementById('adult-content-area');
+  const catsEl = document.getElementById('adult-cats');
+  if (!area) return;
+
+  catsEl.innerHTML = ['All', 'Popular', 'HD'].map((c,i) =>
+    `<button class="cat-tab ${i===0?'active':''}" onclick="filterAdultCat('${c}',this)">${c}</button>`
+  ).join('');
+
+  renderAdultContent('All');
+}
+
+function filterAdultCat(cat, btn) {
+  document.querySelectorAll('#adult-cats .cat-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAdultContent(cat);
+}
+
+function renderAdultContent(filter) {
+  const area = document.getElementById('adult-content-area');
+  let html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
+
+  for (const cat of ADULT_SITES) {
+    html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
+    html += `<div class="adult-site-grid">`;
+    for (const s of cat.sites) {
+      html += `
+        <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
+          <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
+          <div class="adult-site-name">${s.name}</div>
+          <div class="adult-site-desc">${s.desc}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
+        </a>`;
+    }
+    html += `</div>`;
+  }
+
+  area.innerHTML = html;
+}
 
 // ─── INIT ───
 loadHome();
