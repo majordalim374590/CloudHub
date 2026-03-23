@@ -1254,7 +1254,80 @@ body {
 /* Watchlist added icon */
 .watchlist-icon.added { color: var(--red) !important; }
 
-/* ── PIN / ADULT blocks removed per request ── */
+/* ── PIN MODAL ── */
+.pin-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.pin-dot.filled {
+  background: var(--red);
+  border-color: var(--red);
+}
+.pin-key {
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.pin-key:hover { background: var(--surface3); border-color: rgba(255,255,255,0.3); }
+.pin-key:empty { cursor: default; background: transparent; border-color: transparent; }
+
+/* Adult page cards */
+.adult-site-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 30px;
+}
+.adult-site-card {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.adult-site-card:hover {
+  border-color: var(--red);
+  background: var(--surface2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.adult-site-icon {
+  font-size: 36px;
+  width: 64px; height: 64px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
+}
+.adult-site-name { font-size: 15px; font-weight: 700; }
+.adult-site-desc { font-size: 12px; color: var(--text2); }
+.adult-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  margin-top: 4px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 </style>
 </head>
@@ -1286,8 +1359,7 @@ body {
     <button class="icon-btn" onclick="navigate('history')" title="History"><i class="fas fa-history"></i></button>
     <button class="icon-btn" onclick="navigate('downloads')" title="Downloads"><i class="fas fa-download"></i></button>
     <button class="icon-btn" onclick="openSettings()" title="Settings"><i class="fas fa-cog"></i></button>
-    <!-- profile no longer opens adult section -->
-    <button class="profile-btn" onclick="navigate('home')" title="Profile" style="position:relative;">U</button>
+    <button class="profile-btn" onclick="openAdultPage()" title="Profile" style="position:relative;">U</button>
   </div>
 </nav>
 
@@ -1422,6 +1494,18 @@ body {
     <div id="storage-info" style="padding:0 4% 16px;font-size:13px;color:var(--text2);"></div>
     <div class="history-grid" id="downloads-grid"></div>
   </div>
+  <!-- ADULT CONTENT PAGE (Hidden / PIN protected) -->
+  <div id="page-adult18" class="page">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1>🔞 Adult Hub</h1>
+        <p style="color:var(--text2);">Premium adult content — 18+ only</p>
+      </div>
+      <button class="btn btn-grey btn-sm" onclick="lockAdultPage()"><i class="fas fa-lock"></i> Lock</button>
+    </div>
+    <div class="category-tabs" id="adult-cats"></div>
+    <div id="adult-content-area" style="padding:0 4% 80px;"></div>
+  </div>
 
 </div><!-- #app -->
 
@@ -1473,6 +1557,10 @@ body {
       <button class="toggle-switch on" id="s-autoplay" onclick="this.classList.toggle('on')"></button>
     </div>
     <div class="settings-toggle">
+      <span style="display:flex;align-items:center;gap:6px;">🔞 Adult Content (18+) <span style="font-size:10px;color:var(--red);font-weight:700;border:1px solid var(--red);padding:1px 5px;border-radius:3px;">18+</span></span>
+      <button class="toggle-switch" id="s-adult" onclick="toggle18Plus(this)"></button>
+    </div>
+    <div class="settings-toggle">
       <span>HD Quality Preferred</span>
       <button class="toggle-switch on" id="s-hd" onclick="this.classList.toggle('on')"></button>
     </div>
@@ -1506,6 +1594,47 @@ body {
   </div>
 </div>
 
+<!-- ADULT PIN MODAL -->
+<div class="modal-overlay" id="adult-pin-modal">
+  <div class="modal" style="max-width:340px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:36px;margin-bottom:8px;">🔐</div>
+      <h3 id="adult-pin-title">Enter PIN</h3>
+      <p id="adult-pin-subtitle" style="font-size:13px;color:var(--text2);">Enter your 4-digit PIN to access adult content</p>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;" id="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 16px;">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" style="cursor:default;background:transparent;border-color:transparent;"></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" onclick="pinKey('⌫')">⌫</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-grey btn-sm" style="flex:1;" onclick="closeAdultPin()">Cancel</button>
+      <button class="btn btn-red btn-sm" style="flex:1;" id="adult-pin-action-btn" onclick="confirmAdultPin()">Unlock</button>
+    </div>
+    <p style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3);">
+      <span onclick="resetAdultPin()" style="cursor:pointer;color:var(--red);">Forgot PIN? Reset</span>
+    </p>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
@@ -1518,12 +1647,9 @@ body {
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
-
 <script>
 // ═══════════════════════════════════════════════════
-//  CLOUDHUB — Core App (adult content removed)
+//  CLOUDHUB — Core App
 // ═══════════════════════════════════════════════════
 
 const APP = {
@@ -1596,6 +1722,7 @@ function navigate(page, params = {}) {
     case 'downloads': loadDownloadsPage(); break;
     case 'detail': loadDetailPage(params); break;
     case 'player': loadPlayerPage(params); break;
+    case 'adult18': loadAdultPage(); break;
   }
 }
 
@@ -1812,6 +1939,18 @@ async function loadHome() {
   ]);
   html += buildRow('⭐ Top Rated Movies', top_movies?.results, 'movie', 'movies');
   html += buildRow('📺 Popular Series', pop_series?.results, 'tv', 'series');
+
+  // Adult content rows (18+) - all categories
+  if (APP.settings.adult18) {
+    const [adultMovies, adultRomance, adultTV] = await Promise.all([
+      tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', 'vote_count.gte': 100 }),
+      tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 }),
+      tmdb('/discover/tv',    { include_adult: true, sort_by: 'popularity.desc' }),
+    ]);
+    if (adultMovies?.results?.length)  html += buildRow('🔞 Adult Movies — Popular',  adultMovies.results,  'movie', 'movies');
+    if (adultRomance?.results?.length) html += buildRow('💋 Romance & Adult Drama',   adultRomance.results, 'movie', 'movies');
+    if (adultTV?.results?.length)      html += buildRow('🔞 Adult TV Shows',           adultTV.results,      'tv',    'series');
+  }
 
   // Hindi Cartoons row (static)
   html += buildRow('🎌 Classic Hindi Cartoons', HINDI_CARTOONS, 'hindi', '');
@@ -2329,6 +2468,8 @@ function toggleDesc() {
 }
 
 // ─── PLAYER LANGUAGE PREFERENCE ───
+// Stored per-session; user can change via the 🌐 button in the player
+// No popup ever — language is chosen from the player controls like Netflix subtitles
 function openPlayer(id, type, season = 1, episode = 1) {
   const lang = APP.playerLang || APP.settings.preferredLang || 'original';
   if (type === 'anime' || type === 'live') {
@@ -2338,6 +2479,7 @@ function openPlayer(id, type, season = 1, episode = 1) {
   navigate('player', { id, type, season, episode, lang });
 }
 
+// ─── LANGUAGE SWITCHER (Netflix-style — in player controls, not a popup) ───
 function showLangMenu(id, type, season, episode, currentLang) {
   const existing = document.getElementById('lang-menu-dropdown');
   if (existing) { existing.remove(); return; }
@@ -2583,6 +2725,7 @@ function getEmbedUrl(id, type, season, episode, source, lang = 'original') {
           ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}?lang=hi`
           : `https://player.autoembed.cc/embed/movie/${id}?lang=hi`;
       default:
+        // For Hindi, default to multiembed which best supports it
         return isTV
           ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=hi`
           : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=hi`;
@@ -2928,6 +3071,7 @@ function openSettings() {
   document.getElementById('s-source-prio').value = APP.settings.sourcePrio || 'vidsrcme';
   document.getElementById('s-lang-pref').value = APP.settings.preferredLang || 'original';
   document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay !== false);
+  document.getElementById('s-adult').classList.toggle('on', !!APP.settings.adult18);
   setAnimePref(APP.settings.animePref || 'sub', true);
 }
 function closeSettings() {
@@ -2949,6 +3093,15 @@ function saveSettings() {
   APP.settings.autoplay = document.getElementById('s-autoplay').classList.contains('on');
   APP.settings.hd = document.getElementById('s-hd').classList.contains('on');
   localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
+}
+
+function toggle18Plus(btn) {
+  btn.classList.toggle('on');
+  APP.settings.adult18 = btn.classList.contains('on');
+  localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
+  showToast(APP.settings.adult18 ? '🔞 Adult content enabled' : 'Adult content disabled');
+  APP.cache = {};
+  if (APP.currentPage === 'home') loadHome();
 }
 
 function setAnimePref(pref, silent = false) {
@@ -3088,6 +3241,86 @@ const manifestLink = document.createElement('link');
 manifestLink.rel = 'manifest';
 manifestLink.href = manifestUrl;
 document.head.appendChild(manifestLink);
+
+
+
+function playAdultVideo(embedUrl, title) {
+  // Reuse the existing player page logic
+  navigate('player', { type: 'adult_internal', embedUrl, title });
+}
+
+function renderAdultContent(filter) {
+  const area = document.getElementById('adult-content-area');
+  let html = '';
+
+  if (filter === 'Internal Player') {
+    html = `
+      <div style="margin-bottom:24px;">
+        <div class="search-bar-large" style="max-width:600px;margin:0 auto;">
+          <i class="fas fa-search search-icon-abs"></i>
+          <input type="text" placeholder="Search adult content to play internally..." oninput="debounceAdultSearch(this.value)">
+        </div>
+      </div>
+      <div id="adult-search-results" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+        <div class="empty-state" style="grid-column:1/-1;padding:40px 20px;">
+          <i class="fas fa-play-circle"></i>
+          <h2>Internal Player</h2>
+          <p>Search above to find and play videos directly in CloudHub</p>
+        </div>
+      </div>
+    `;
+  } else {
+    html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
+
+    for (const cat of ADULT_SITES) {
+      html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
+      html += `<div class="adult-site-grid">`;
+      for (const s of cat.sites) {
+        html += `
+          <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
+            <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
+            <div class="adult-site-name">${s.name}</div>
+            <div class="adult-site-desc">${s.desc}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
+          </a>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  area.innerHTML = html;
+}
+
+// Override the loadPlayerPage function to handle the new 'adult_internal' type
+const originalLoadPlayerPage = loadPlayerPage;
+loadPlayerPage = async function(params) {
+  if (params.type === 'adult_internal') {
+    const wrapper = document.getElementById('player-wrapper');
+    const infoEl = document.getElementById('player-info');
+    
+    const t = document.getElementById('player-top-title');
+    const m = document.getElementById('player-top-meta');
+    if (t) t.textContent = params.title;
+    if (m) m.textContent = 'Internal Player';
+
+    const old = wrapper.querySelector('iframe, video');
+    if (old) old.remove();
+    
+    wrapper.innerHTML += `<iframe src="${params.embedUrl}" allowfullscreen allow="autoplay; fullscreen" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+
+    infoEl.innerHTML = `
+      <div class="player-title">${params.title}</div>
+      <div class="player-meta"><span style="color:var(--red);font-weight:bold;">18+</span> · Internal Player</div>
+      <div class="player-actions">
+        <button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>
+    `;
+    return;
+  }
+  
+  // Call original for everything else
+  return originalLoadPlayerPage(params);
+};
 
 // ─── INIT ───
 loadHome();
