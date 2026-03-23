@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -789,19 +790,59 @@ body {
   display: flex;
   flex-direction: column;
 }
-.player-wrapper {
+
+/* Netflix-style theatre wrapper */
+.player-theatre {
   position: relative;
   width: 100%;
   background: #000;
   flex-shrink: 0;
 }
-.player-wrapper iframe,
-.player-wrapper video {
+.player-theatre iframe,
+.player-theatre video {
   width: 100%;
   aspect-ratio: 16/9;
   border: none;
   display: block;
 }
+
+/* Floating top bar inside player */
+.player-top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  padding: 16px 20px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.player-theatre:hover .player-top-bar { opacity: 1; pointer-events: all; }
+.player-back-btn {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.player-back-btn:hover { background: rgba(229,9,20,0.8); border-color: var(--red); }
+.player-top-title {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+.player-top-meta { font-size: 12px; color: rgba(255,255,255,0.6); }
 
 .player-info-panel {
   padding: 20px 4%;
@@ -812,25 +853,46 @@ body {
 .player-meta { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
 .player-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
 
-.source-switcher {
-  margin-top: 16px;
+/* Source switcher — Netflix style tabs */
+.source-switcher { margin-top: 20px; }
+.source-switcher-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.source-switcher h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text2); }
-.source-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.source-btns {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+}
 .source-btn {
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: 8px 16px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface2);
   color: var(--text2);
   transition: var(--transition);
   font-family: inherit;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
-.source-btn.active { background: var(--red); border-color: var(--red); color: white; }
-.source-btn:hover { border-color: rgba(255,255,255,0.35); color: white; }
+.source-btn:last-child { border-right: none; }
+.source-btn.active { background: var(--red); color: white; }
+.source-btn:hover:not(.active) { background: var(--surface3); color: white; }
 
 /* ── LIVE TV ── */
 .live-grid {
@@ -1321,7 +1383,15 @@ body {
   <!-- PLAYER PAGE -->
   <div id="page-player" class="page">
     <div id="player-page">
-      <div class="player-wrapper" id="player-wrapper"></div>
+      <div class="player-theatre" id="player-wrapper">
+        <div class="player-top-bar">
+          <button class="player-back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+          <div>
+            <div class="player-top-title" id="player-top-title">CloudHub</div>
+            <div class="player-top-meta" id="player-top-meta"></div>
+          </div>
+        </div>
+      </div>
       <div class="player-info-panel" id="player-info"></div>
     </div>
   </div>
@@ -1385,18 +1455,29 @@ body {
       <button class="toggle-switch on" id="s-autoplay" onclick="this.classList.toggle('on')"></button>
     </div>
     <div class="settings-toggle">
+      <span style="display:flex;align-items:center;gap:6px;">🔞 Adult Content (18+) <span style="font-size:10px;color:var(--red);font-weight:700;border:1px solid var(--red);padding:1px 5px;border-radius:3px;">18+</span></span>
+      <button class="toggle-switch" id="s-adult" onclick="toggle18Plus(this)"></button>
+    </div>
+    <div class="settings-toggle">
       <span>HD Quality Preferred</span>
       <button class="toggle-switch on" id="s-hd" onclick="this.classList.toggle('on')"></button>
     </div>
   </div>
 
   <div class="settings-section">
-    <div class="settings-label">Player Source Priority</div>
-    <p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Order: VidSrc → 2Embed → VidSrc.xyz</p>
+    <div class="settings-label">Default Player Source</div>
     <select class="settings-select" id="s-source-prio">
-      <option value="vidsrc">VidSrc.to (Default)</option>
+      <option value="vidsrcme">VidSrc.me ⭐ Recommended</option>
+      <option value="vidsrc">VidSrc.to</option>
+      <option value="embedsu">EmbedSu</option>
+      <option value="smashystream">SmashyStream</option>
+      <option value="rivestream">RiveStream</option>
       <option value="2embed">2Embed.cc</option>
       <option value="vidsrcxyz">VidSrc.xyz</option>
+      <option value="autoembed">AutoEmbed</option>
+      <option value="multiembed">MultiEmbed</option>
+      <option value="moviesapi">MoviesAPI</option>
+      <option value="nontongo">NontonGo</option>
     </select>
   </div>
 
@@ -1407,7 +1488,7 @@ body {
   </div>
 
   <div style="margin-top:12px;text-align:center;font-size:11px;color:var(--text3);">
-    CloudHub v1.0 · Personal Use Only
+    CloudHub v2.0 · Personal Use Only
   </div>
 </div>
 
@@ -1682,6 +1763,18 @@ async function loadHome() {
   html += buildRow('⭐ Top Rated Movies', top_movies?.results, 'movie', 'movies');
   html += buildRow('📺 Popular Series', pop_series?.results, 'tv', 'series');
 
+  // Adult content rows (18+) - all categories
+  if (APP.settings.adult18) {
+    const [adultMovies, adultRomance, adultTV] = await Promise.all([
+      tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', 'vote_count.gte': 100 }),
+      tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 }),
+      tmdb('/discover/tv',    { include_adult: true, sort_by: 'popularity.desc' }),
+    ]);
+    if (adultMovies?.results?.length)  html += buildRow('🔞 Adult Movies — Popular',  adultMovies.results,  'movie', 'movies');
+    if (adultRomance?.results?.length) html += buildRow('💋 Romance & Adult Drama',   adultRomance.results, 'movie', 'movies');
+    if (adultTV?.results?.length)      html += buildRow('🔞 Adult TV Shows',           adultTV.results,      'tv',    'series');
+  }
+
   // Hindi Cartoons row (static)
   html += buildRow('🎌 Classic Hindi Cartoons', HINDI_CARTOONS, 'hindi', '');
 
@@ -1774,7 +1867,7 @@ async function loadMoviesPage() {
   const grid = document.getElementById('movies-grid');
   grid.innerHTML = skeleton(12);
   const catsEl = document.getElementById('movies-cats');
-  catsEl.innerHTML = ['Popular','Top Rated','Now Playing','Upcoming','Action','Comedy','Drama','Horror','Sci-Fi','Animation'].map((c,i) =>
+  catsEl.innerHTML = ['Popular','Top Rated','Now Playing','Upcoming','Action','Comedy','Drama','Horror','Sci-Fi','Animation','🔞 18+'].map((c,i) =>
     `<button class="cat-tab ${i===0?'active':''}" onclick="loadMoviesCat('${c}',this)">${c}</button>`
   ).join('');
   await loadMoviesCat('Popular', catsEl.querySelector('.active'));
@@ -1800,6 +1893,11 @@ async function loadMoviesCat(cat, btn) {
   };
   const genreMap = { Action: 28, Comedy: 35, Drama: 18, Horror: 27, 'Sci-Fi': 878, Animation: 16 };
   const params = genreMap[cat] ? { with_genres: genreMap[cat] } : {};
+  if (cat === '🔞 18+') {
+    const data = await tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 });
+    grid.innerHTML = (data?.results || []).map(i => buildCard(i,'movie')).join('');
+    return;
+  }
   const data = await tmdb(endpoints[cat] || '/movie/popular', params);
   grid.innerHTML = (data?.results || []).map(i => buildCard(i,'movie')).join('');
 }
@@ -1809,7 +1907,7 @@ async function loadSeriesPage() {
   const grid = document.getElementById('series-grid');
   grid.innerHTML = skeleton(12);
   const catsEl = document.getElementById('series-cats');
-  catsEl.innerHTML = ['Popular','Top Rated','On The Air','Action','Drama','Comedy','Sci-Fi','Crime','Documentary'].map((c,i) =>
+  catsEl.innerHTML = ['Popular','Top Rated','On The Air','Action','Drama','Comedy','Sci-Fi','Crime','Documentary','🔞 18+'].map((c,i) =>
     `<button class="cat-tab ${i===0?'active':''}" onclick="loadSeriesCat('${c}',this)">${c}</button>`
   ).join('');
   await loadSeriesCat('Popular', catsEl.querySelector('.active'));
@@ -1833,6 +1931,11 @@ async function loadSeriesCat(cat, btn) {
   };
   const genreMapTV = { Action: 10759, Drama: 18, Comedy: 35, 'Sci-Fi': 10765, Crime: 80, Documentary: 99 };
   const params = genreMapTV[cat] ? { with_genres: genreMapTV[cat] } : {};
+  if (cat === '🔞 18+') {
+    const data = await tmdb('/discover/tv', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 });
+    grid.innerHTML = (data?.results || []).map(i => buildCard(i,'tv')).join('');
+    return;
+  }
   const data = await tmdb(endpoints[cat] || '/tv/popular', params);
   grid.innerHTML = (data?.results || []).map(i => buildCard(i,'tv')).join('');
 }
@@ -2176,10 +2279,32 @@ async function loadPlayerPage(params) {
   const wrapper = document.getElementById('player-wrapper');
   const infoEl = document.getElementById('player-info');
 
+  // Keep top bar HTML intact, just inject iframe/video inside wrapper
+  function injectPlayer(html) {
+    // Remove old iframe/video if any
+    const old = wrapper.querySelector('iframe, video');
+    if (old) old.remove();
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const el = div.firstElementChild;
+    wrapper.appendChild(el);
+  }
+
+  function setTopBar(title, meta) {
+    const t = document.getElementById('player-top-title');
+    const m = document.getElementById('player-top-meta');
+    if (t) t.textContent = title;
+    if (m) m.textContent = meta || '';
+  }
+
   if (params.type === 'live') {
     const ch = LIVE_CHANNELS.find(c => c.id === params.id);
-    wrapper.innerHTML = `<video id="live-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;"></video>`;
-    infoEl.innerHTML = `<div class="player-title">${ch?.icon || '📡'} ${params.title}</div><div class="player-meta"><span class="badge-live badge" style="position:static;font-size:10px;padding:2px 8px;">LIVE</span> <span style="color:var(--text2);font-size:13px;">${ch?.category||''}</span></div>`;
+    setTopBar(`${ch?.icon || '📡'} ${params.title}`, 'LIVE · ' + (ch?.category || ''));
+    injectPlayer(`<video id="live-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;display:block;"></video>`);
+    infoEl.innerHTML = `
+      <div class="player-title">${ch?.icon || '📡'} ${params.title}</div>
+      <div class="player-meta"><span class="badge-live badge" style="position:static;font-size:10px;padding:2px 8px;">LIVE</span> <span style="color:var(--text2);font-size:13px;margin-left:6px;">${ch?.category||''}</span></div>
+      <div class="player-actions"><button class="btn btn-grey btn-sm" onclick="navigate('live')"><i class="fas fa-arrow-left"></i> All Channels</button></div>`;
 
     const video = document.getElementById('live-video');
     if (ch?.url && Hls.isSupported()) {
@@ -2188,11 +2313,9 @@ async function loadPlayerPage(params) {
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
       hls.on(Hls.Events.ERROR, (_, d) => {
-        if (d.fatal) {
-          infoEl.innerHTML += `<div style="color:var(--amber);font-size:13px;margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Stream unavailable. Try another channel.</div>`;
-        }
+        if (d.fatal) infoEl.innerHTML += `<div style="color:var(--amber);font-size:13px;margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Stream unavailable.</div>`;
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (video?.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = ch.url;
       video.play().catch(()=>{});
     }
@@ -2200,120 +2323,161 @@ async function loadPlayerPage(params) {
   }
 
   if (params.type === 'anime') {
-    // Use Consumet for stream URL
+    setTopBar(params.title || 'Anime', 'Anime Episode');
     infoEl.innerHTML = `<div class="player-title">${params.title || 'Anime'}</div><div class="player-meta">Loading stream…</div>`;
     const streamData = await consumetFetch(`/anime/gogoanime/watch/${params.epId}`);
     const sources = streamData?.sources || [];
     const best = sources.find(s => s.quality === '1080p') || sources.find(s => s.quality === '720p') || sources[0];
 
     if (best?.url) {
-      wrapper.innerHTML = `<video id="anime-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;"></video>`;
+      injectPlayer(`<video id="anime-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;display:block;"></video>`);
       const video = document.getElementById('anime-video');
       if (Hls.isSupported()) {
         const hls = new Hls({ enableWorker: true });
         hls.loadSource(best.url);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      } else if (video?.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = best.url;
       }
       saveToHistory({ id: params.animeId, type: 'anime', title: params.title, poster: '', rating: '' });
     } else {
-      wrapper.innerHTML = buildEmbedPlayer(params.animeId || params.epId, 'movie');
-      infoEl.innerHTML += `<div style="color:var(--amber);font-size:13px;margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Direct stream unavailable, trying embed…</div>`;
+      injectPlayer(buildIframe(getEmbedUrl(params.animeId || params.epId, 'movie', 1, 1, 'vidsrc')));
     }
-    infoEl.innerHTML = `<div class="player-title">${params.title}</div><div class="player-meta">Anime Episode</div>`;
+    infoEl.innerHTML = `<div class="player-title">${params.title}</div><div class="player-meta">Anime · <span style="color:#46d369;">Streaming</span></div><div class="player-actions"><button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button></div>`;
     return;
   }
 
-  // Movie or TV via embed
+  // ── MOVIE / TV ──
   const { id, type, season, episode } = params;
-  const sourcePrio = APP.settings.sourcePrio || 'vidsrc';
-  const embedUrl = getEmbedUrl(id, type, season, episode, sourcePrio);
+  const sourcePrio = APP.settings.sourcePrio || 'vidsrcme';
 
-  wrapper.innerHTML = buildEmbedPlayer(id, type, season, episode, sourcePrio);
+  injectPlayer(buildIframe(getEmbedUrl(id, type, season, episode, sourcePrio)));
 
-  // Fetch info for panel
+  const epLabel = type === 'tv' ? ` · S${String(season).padStart(2,'0')}E${String(episode).padStart(2,'0')}` : '';
+
+  function buildSourcePanel(title) {
+    const sources = [
+      { key: 'vidsrcme',     label: 'VidSrc.me' },
+      { key: 'vidsrc',       label: 'VidSrc.to' },
+      { key: 'embedsu',      label: 'EmbedSu' },
+      { key: 'smashystream', label: 'Smashy' },
+      { key: 'rivestream',   label: 'Rive' },
+      { key: '2embed',       label: '2Embed' },
+      { key: 'vidsrcxyz',    label: 'VidSrc.xyz' },
+      { key: 'autoembed',    label: 'AutoEmbed' },
+      { key: 'multiembed',   label: 'MultiEmbed' },
+      { key: 'moviesapi',    label: 'MoviesAPI' },
+      { key: 'nontongo',     label: 'NontonGo' },
+    ];
+    return `
+      <div class="source-switcher">
+        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source — try another if buffering</div>
+        <div class="source-btns">
+          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" onclick="switchSource('${id}','${type}','${season}','${episode}','${s.key}',this)">${s.label}</button>`).join('')}
+        </div>
+      </div>`;
+  }
+
   if (APP.tmdbKey) {
     const endpoint = type === 'tv' ? `/tv/${id}` : `/movie/${id}`;
     const detail = await tmdb(endpoint);
     if (detail) {
       const title = detail.title || detail.name;
-      const epLabel = type === 'tv' ? ` · S${String(season).padStart(2,'0')}E${String(episode).padStart(2,'0')}` : '';
+      setTopBar(title + epLabel, detail.genres?.map(g => g.name).slice(0,3).join(' · ') || '');
       infoEl.innerHTML = `
         <div class="player-title">${title}${epLabel}</div>
-        <div class="player-meta">${detail.genres?.map(g=>g.name).join(' · ') || ''} · ${(detail.release_date||detail.first_air_date||'').slice(0,4)}</div>
+        <div class="player-meta">${detail.genres?.map(g=>g.name).join(' · ') || ''} · ${(detail.release_date||detail.first_air_date||'').slice(0,4)} · <span style="color:#46d369;">★ ${detail.vote_average?.toFixed(1)||'N/A'}</span></div>
         <div class="player-actions">
           <button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-info-circle"></i> Details</button>
+          ${type === 'tv' ? `<button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-list"></i> Episodes</button>` : ''}
           <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')"><i class="fas fa-share-alt"></i> Share</button>
-          ${type === 'tv' ? `<button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-list"></i> All Episodes</button>` : ''}
+          <button class="btn btn-grey btn-sm" onclick="toggleWatchlist('${id}','${type}','${title}','${detail.poster_path||''}','${detail.vote_average?.toFixed(1)||''}')"><i class="fas fa-plus"></i> Watchlist</button>
         </div>
-        <div class="source-switcher">
-          <h3><i class="fas fa-server"></i> Switch Source</h3>
-          <div class="source-btns">
-            <button class="source-btn ${sourcePrio==='vidsrc'?'active':''}" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrc',this)">VidSrc</button>
-            <button class="source-btn ${sourcePrio==='2embed'?'active':''}" onclick="switchSource('${id}','${type}','${season}','${episode}','2embed',this)">2Embed</button>
-            <button class="source-btn ${sourcePrio==='vidsrcxyz'?'active':''}" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrcxyz',this)">VidSrc.xyz</button>
-            <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','autoembed',this)">AutoEmbed</button>
-            <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','moviesapi',this)">MoviesAPI</button>
-          </div>
-        </div>`;
-
+        ${buildSourcePanel(title)}`;
       saveToHistory({ id, type, title, poster: detail.poster_path || '', rating: detail.vote_average?.toFixed(1) || '' });
     }
   } else {
-    infoEl.innerHTML = `
-      <div class="player-title">Now Playing</div>
-      <div class="source-switcher">
-        <h3>Switch Source</h3>
-        <div class="source-btns">
-          <button class="source-btn active" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrc',this)">VidSrc</button>
-          <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','2embed',this)">2Embed</button>
-          <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','vidsrcxyz',this)">VidSrc.xyz</button>
-          <button class="source-btn" onclick="switchSource('${id}','${type}','${season}','${episode}','autoembed',this)">AutoEmbed</button>
-        </div>
-      </div>`;
+    setTopBar('Now Playing', '');
+    infoEl.innerHTML = buildSourcePanel('');
   }
 }
 
 function getEmbedUrl(id, type, season, episode, source) {
+  const isTV = type === 'tv';
   switch(source) {
     case 'vidsrc':
-      return type === 'tv'
+      return isTV
         ? `https://vidsrc.to/embed/tv/${id}/${season}/${episode}`
         : `https://vidsrc.to/embed/movie/${id}`;
+    case 'vidsrcme':
+      return isTV
+        ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`
+        : `https://vidsrc.me/embed/movie?tmdb=${id}`;
     case '2embed':
-      return type === 'tv'
+      return isTV
         ? `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`
         : `https://www.2embed.cc/embed/${id}`;
     case 'vidsrcxyz':
-      return type === 'tv'
+      return isTV
         ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`
         : `https://vidsrc.xyz/embed/movie?tmdb=${id}`;
+    case 'embedsu':
+      return isTV
+        ? `https://embed.su/embed/tv/${id}/${season}/${episode}`
+        : `https://embed.su/embed/movie/${id}`;
+    case 'smashystream':
+      return isTV
+        ? `https://player.smashy.stream/tv/${id}?s=${season}&e=${episode}`
+        : `https://player.smashy.stream/movie/${id}`;
+    case 'rivestream':
+      return isTV
+        ? `https://rivestream.live/embed?type=tv&id=${id}&season=${season}&episode=${episode}`
+        : `https://rivestream.live/embed?type=movie&id=${id}`;
     case 'autoembed':
-      return type === 'tv'
+      return isTV
         ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`
         : `https://player.autoembed.cc/embed/movie/${id}`;
     case 'moviesapi':
-      return type === 'tv'
+      return isTV
         ? `https://moviesapi.club/tv/${id}-${season}-${episode}`
         : `https://moviesapi.club/movie/${id}`;
+    case 'multiembed':
+      return isTV
+        ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`
+        : `https://multiembed.mov/?video_id=${id}&tmdb=1`;
+    case 'nontongo':
+      return isTV
+        ? `https://www.NontonGo.net/embed/tv/${id}/${season}/${episode}`
+        : `https://www.NontonGo.net/embed/movie/${id}`;
     default:
       return getEmbedUrl(id, type, season, episode, 'vidsrc');
   }
 }
 
-function buildEmbedPlayer(id, type, season, episode, source = 'vidsrc') {
-  const url = getEmbedUrl(id, type, season, episode, source);
-  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>`;
+function buildIframe(url) {
+  return `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
+}
+
+function buildEmbedPlayer(id, type, season, episode, source = 'vidsrcme') {
+  return buildIframe(getEmbedUrl(id, type, season, episode, source));
 }
 
 function switchSource(id, type, season, episode, source, btn) {
   document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const wrapper = document.getElementById('player-wrapper');
-  wrapper.innerHTML = buildEmbedPlayer(id, type, season, episode, source);
-  showToast(`Switched to ${btn.textContent}`);
+  const old = wrapper.querySelector('iframe, video');
+  if (old) old.remove();
+  const iframe = document.createElement('iframe');
+  iframe.src = getEmbedUrl(id, type, season, episode, source);
+  iframe.allowFullscreen = true;
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.setAttribute('referrerpolicy', 'origin');
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+  iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
+  wrapper.appendChild(iframe);
+  showToast(`▶ Switched to ${btn.textContent}`);
 }
 
 // ─── SEARCH ───
@@ -2343,7 +2507,7 @@ async function runSearch(query) {
   r.innerHTML = skeleton(8);
 
   const [tmdbRes, animeRes] = await Promise.all([
-    APP.tmdbKey ? tmdb('/search/multi', { query, include_adult: false }) : null,
+    APP.tmdbKey ? tmdb('/search/multi', { query, include_adult: APP.settings.adult18 ? true : false }) : null,
     consumetFetch(`/anime/gogoanime?search=${encodeURIComponent(query)}`),
   ]);
 
@@ -2549,9 +2713,10 @@ function openSettings() {
   // Load current values
   document.getElementById('s-tmdb-key').value = APP.tmdbKey;
   document.getElementById('s-sub-lang').value = APP.settings.subLang;
-  document.getElementById('s-source-prio').value = APP.settings.sourcePrio;
-  document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay);
-  setAnimePref(APP.settings.animePref, true);
+  document.getElementById('s-source-prio').value = APP.settings.sourcePrio || 'vidsrcme';
+  document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay !== false);
+  document.getElementById('s-adult').classList.toggle('on', !!APP.settings.adult18);
+  setAnimePref(APP.settings.animePref || 'sub', true);
 }
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('open');
@@ -2570,7 +2735,17 @@ function saveSettings() {
   APP.settings.subLang = document.getElementById('s-sub-lang').value;
   APP.settings.sourcePrio = document.getElementById('s-source-prio').value;
   APP.settings.autoplay = document.getElementById('s-autoplay').classList.contains('on');
+  APP.settings.hd = document.getElementById('s-hd').classList.contains('on');
   localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
+}
+
+function toggle18Plus(btn) {
+  btn.classList.toggle('on');
+  APP.settings.adult18 = btn.classList.contains('on');
+  localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
+  showToast(APP.settings.adult18 ? '🔞 Adult content enabled' : 'Adult content disabled');
+  APP.cache = {};
+  if (APP.currentPage === 'home') loadHome();
 }
 
 function setAnimePref(pref, silent = false) {
@@ -2583,7 +2758,7 @@ function setAnimePref(pref, silent = false) {
     subBtn.style.background = pref === 'sub' ? 'var(--red)' : 'transparent';
     subBtn.style.color = pref === 'sub' ? 'white' : 'var(--text2)';
   }
-  if (!silent) { localStorage.setItem('ch_settings', JSON.stringify(APP.settings)); showToast(`Default: ${pref.toUpperCase()}`); }
+  if (!silent) { localStorage.setItem('ch_settings', JSON.stringify(APP.settings)); showToast(`Default anime: ${pref.toUpperCase()}`); }
 }
 
 function confirmClearAll() {
