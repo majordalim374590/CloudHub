@@ -13,9 +13,14 @@
 <title>CloudHub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
+<!-- Non-blocking font load -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<!-- Font Awesome deferred -->
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+<!-- hls.js loaded only when needed (deferred) -->
+<script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 
 <style>
 :root {
@@ -1516,7 +1521,8 @@ const APP = {
   tmdbKey: localStorage.getItem('ch_tmdb_key') || '',
   tmdbBase: 'https://api.themoviedb.org/3',
   tmdbImg: 'https://image.tmdb.org/t/p',
-  consumet: 'https://api.consumet.org',
+  consumet: 'https://consumet-api.onrender.com', // fallback embed only
+  jikan: 'https://api.jikan.moe/v4',             // Jikan — free, no key, always-on
   currentPage: 'home',
   searchFilter: 'all',
   heroInterval: null,
@@ -1631,22 +1637,43 @@ async function tmdb(endpoint, params = {}) {
 }
 
 async function consumetFetch(endpoint) {
-  const cacheKey = 'consumet:' + endpoint;
+  // Consumet API shut down permanently — stub to avoid crashes
+  return null;
+}
+
+// ─── JIKAN API (free MAL API — replaces Consumet for all anime) ───
+async function jikan(endpoint, params = {}) {
+  const cacheKey = 'jikan:' + endpoint + JSON.stringify(params);
   const cached = APP.cache[cacheKey];
   if (cached && (Date.now() - cached.ts < 300000)) return cached.data;
   try {
+    const url = new URL(APP.jikan + endpoint);
+    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 7000);
-    const r = await fetch(APP.consumet + endpoint, { signal: ctrl.signal });
+    const tid = setTimeout(() => ctrl.abort(), 10000);
+    const r = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     if (!r.ok) throw new Error(r.status);
     const data = await r.json();
     APP.cache[cacheKey] = { data, ts: Date.now() };
     return data;
   } catch(e) {
-    console.warn('Consumet error:', e);
+    console.warn('Jikan error:', e);
     return null;
   }
+}
+
+function jikanToCard(item) {
+  return {
+    id: item.mal_id,
+    title: item.title_english || item.title,
+    image: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url,
+    poster_path: null,
+    vote_average: item.score || 0,
+    release_date: item.aired?.from ? item.aired.from.slice(0,4) : (item.year || ''),
+    _type: 'anime',
+    _malId: item.mal_id,
+  };
 }
 
 // ─── IMAGE URL ───
@@ -1666,12 +1693,15 @@ function skeleton(n = 6) {
 
 // ─── CARD BUILDER ───
 function buildCard(item, type = 'movie') {
-  const id = item.id || item.mal_id;
+  const id = item.id || item.mal_id || item._malId;
   const title = item.title || item.name || item.original_title || 'Unknown';
+  // Support TMDB poster_path, Jikan image field, and static image URLs
   const poster = item.poster_path
     ? img(item.poster_path)
     : (item.image || item.coverImage?.large || `https://placehold.co/160x240/141414/444?text=${encodeURIComponent(title.slice(0,10))}`);
-  const rating = item.vote_average ? item.vote_average.toFixed(1) : (item.score ? (item.score/10).toFixed(1) : '?');
+  // Jikan scores are 0-10; TMDB vote_average is also 0-10
+  const rawRating = item.vote_average ?? item.score ?? null;
+  const rating = rawRating ? parseFloat(rawRating).toFixed(1) : '?';
   const year = (item.release_date || item.first_air_date || item.startDate?.year || '').toString().slice(0,4);
 
   const progress = getProgress(id, type);
@@ -1727,39 +1757,44 @@ async function loadHome() {
   }
   hideApiBanner();
 
-  // Hero
+  // Hero — fetch first so it shows immediately
   const trending = await tmdb('/trending/all/week');
   if (trending?.results) {
     APP.heroItems = trending.results.slice(0, 5);
     buildHero(APP.heroItems);
   }
 
-  // Rows
+  // Rows — show skeletons, then fill progressively (faster perceived load)
   const rowsEl = document.getElementById('home-rows');
-  rowsEl.innerHTML = '<div style="padding:20px 0;">' + Array(6).fill('<div class="row-section"><div style="height:20px;width:200px;background:var(--surface2);border-radius:4px;margin-bottom:14px;"></div><div class="row-scroll">' + skeleton(8) + '</div></div>').join('') + '</div>';
-
-  const [pop_movies, top_series, now_playing, top_movies, pop_series] = await Promise.all([
-    tmdb('/movie/popular'),
-    tmdb('/tv/top_rated'),
-    tmdb('/movie/now_playing'),
-    tmdb('/movie/top_rated'),
-    tmdb('/tv/popular'),
-  ]);
+  rowsEl.innerHTML = '<div style="padding:20px 0;">' + Array(5).fill('<div class="row-section"><div style="height:20px;width:200px;background:var(--surface2);border-radius:4px;margin-bottom:14px;"></div><div class="row-scroll">' + skeleton(8) + '</div></div>').join('') + '</div>';
 
   const history = getHistory();
   let html = '';
-
-  // Continue Watching
   if (history.length > 0) {
     html += buildRow('🕐 Continue Watching', history.slice(0,15).map(h => ({
       id: h.id, title: h.title, poster_path: h.poster, vote_average: h.rating
     })), 'continue', 'history');
   }
 
+  // Trending row is already loaded — render it immediately
   html += buildRow('🔥 Trending Now', trending?.results, 'movie', 'movies');
+  rowsEl.innerHTML = html + '<div style="padding:20px 0;">' + Array(4).fill('<div class="row-section"><div style="height:20px;width:200px;background:var(--surface2);border-radius:4px;margin-bottom:14px;"></div><div class="row-scroll">' + skeleton(8) + '</div></div>').join('') + '</div>';
+
+  // Fetch remaining rows in parallel — but only 3 at a time to avoid rate limits
+  const [pop_movies, top_series, now_playing] = await Promise.all([
+    tmdb('/movie/popular'),
+    tmdb('/tv/top_rated'),
+    tmdb('/movie/now_playing'),
+  ]);
   html += buildRow('🎬 Popular Movies', pop_movies?.results, 'movie', 'movies');
   html += buildRow('📺 Top Rated Series', top_series?.results, 'tv', 'series');
   html += buildRow('🌟 Now Playing', now_playing?.results, 'movie', 'movies');
+  rowsEl.innerHTML = html + '<div style="padding:20px 0;">' + Array(2).fill('<div class="row-section"><div style="height:20px;width:200px;background:var(--surface2);border-radius:4px;margin-bottom:14px;"></div><div class="row-scroll">' + skeleton(8) + '</div></div>').join('') + '</div>';
+
+  const [top_movies, pop_series] = await Promise.all([
+    tmdb('/movie/top_rated'),
+    tmdb('/tv/popular'),
+  ]);
   html += buildRow('⭐ Top Rated Movies', top_movies?.results, 'movie', 'movies');
   html += buildRow('📺 Popular Series', pop_series?.results, 'tv', 'series');
 
@@ -1778,10 +1813,10 @@ async function loadHome() {
   // Hindi Cartoons row (static)
   html += buildRow('🎌 Classic Hindi Cartoons', HINDI_CARTOONS, 'hindi', '');
 
-  // Anime row from Consumet
-  const animeData = await consumetFetch('/anime/gogoanime/top-airing');
-  if (animeData?.results) {
-    html += buildRow('🇯🇵 Anime — Hot Right Now', animeData.results, 'anime', 'anime');
+  // Anime row — using Jikan API (free, always-on)
+  const animeData = await jikan('/top/anime', { filter: 'airing', limit: 20 });
+  if (animeData?.data) {
+    html += buildRow('🇯🇵 Anime — Hot Right Now', animeData.data.map(jikanToCard), 'anime', 'anime');
   }
 
   rowsEl.innerHTML = html;
@@ -1945,7 +1980,7 @@ async function loadAnimePage() {
   const grid = document.getElementById('anime-grid');
   grid.innerHTML = skeleton(12);
   const catsEl = document.getElementById('anime-cats');
-  catsEl.innerHTML = ['Top Airing','Popular','Movies','Action','Romance','Isekai','Shonen','Fantasy'].map((c,i) =>
+  catsEl.innerHTML = ['Top Airing','Popular','Top Rated','Movies','Action','Romance','Fantasy','Shonen','Isekai'].map((c,i) =>
     `<button class="cat-tab ${i===0?'active':''}" onclick="loadAnimeCat('${c}',this)">${c}</button>`
   ).join('');
   await loadAnimeCat('Top Airing', catsEl.querySelector('.active'));
@@ -1957,25 +1992,32 @@ async function loadAnimeCat(cat, btn) {
   const grid = document.getElementById('anime-grid');
   grid.innerHTML = skeleton(12);
 
-  const endpoints = {
-    'Top Airing': '/anime/gogoanime/top-airing',
-    'Popular': '/anime/gogoanime/most-popular',
-    'Movies': '/anime/gogoanime/movies',
-  };
-
-  const genreAnime = { Action: 'action', Romance: 'romance', Isekai: 'isekai', Shonen: 'shounen', Fantasy: 'fantasy' };
+  // Jikan genre IDs
+  const genreIds = { Action: 1, Romance: 22, Fantasy: 10, Shonen: 27, Isekai: 62 };
 
   let data;
-  if (endpoints[cat]) {
-    data = await consumetFetch(endpoints[cat]);
-  } else {
-    data = await consumetFetch(`/anime/gogoanime?search=${genreAnime[cat]||cat.toLowerCase()}`);
-  }
+  try {
+    if (cat === 'Top Airing') {
+      data = await jikan('/top/anime', { filter: 'airing', limit: 24 });
+    } else if (cat === 'Popular') {
+      data = await jikan('/top/anime', { filter: 'bypopularity', limit: 24 });
+    } else if (cat === 'Top Rated') {
+      data = await jikan('/top/anime', { limit: 24 });
+    } else if (cat === 'Movies') {
+      data = await jikan('/top/anime', { type: 'movie', limit: 24 });
+    } else if (genreIds[cat]) {
+      data = await jikan('/anime', { genres: genreIds[cat], order_by: 'popularity', limit: 24 });
+    } else {
+      data = await jikan('/anime', { q: cat, limit: 24 });
+    }
 
-  const items = data?.results || [];
-  grid.innerHTML = items.length
-    ? items.map(i => buildCard(i, 'anime')).join('')
-    : `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-dragon"></i><h2>Anime unavailable</h2><p>Consumet API may be temporarily down. <button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="loadAnimeCat('${cat}',document.querySelector('#anime-cats .active'))"><i class="fas fa-redo"></i> Retry</button></p></div>`;
+    const items = (data?.data || []).map(jikanToCard);
+    grid.innerHTML = items.length
+      ? items.map(i => buildCard(i, 'anime')).join('')
+      : `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-dragon"></i><h2>No results</h2><p>Try another category</p></div>`;
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-dragon"></i><h2>Failed to load</h2><p><button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="loadAnimeCat('${cat}',document.querySelector('#anime-cats .active'))"><i class="fas fa-redo"></i> Retry</button></p></div>`;
+  }
 }
 
 // ─── LIVE TV ───
@@ -2164,60 +2206,77 @@ async function loadTMDBDetail(tmdbId, type, el, badge, originalItem) {
 }
 
 async function loadAnimeDetail(id, el) {
-  const data = await consumetFetch(`/anime/gogoanime/info/${id}`);
+  // id is now a MAL ID (number) — fetch from Jikan
+  const [infoData, epsData] = await Promise.all([
+    jikan(`/anime/${id}/full`),
+    jikan(`/anime/${id}/episodes`),
+  ]);
 
+  const data = infoData?.data;
   if (!data) {
-    el.innerHTML = '<div class="empty-state"><i class="fas fa-dragon"></i><h2>Anime info unavailable</h2><p>Consumet API may be down. <button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="openDetail(\''+id+'\',\'anime\')"><i class="fas fa-redo"></i> Retry</button></p></div>';
+    el.innerHTML = `<div class="empty-state"><i class="fas fa-dragon"></i><h2>Anime info unavailable</h2><p>Could not load details. <button class="btn btn-red btn-sm" style="margin-top:10px;" onclick="openDetail('${id}','anime')"><i class="fas fa-redo"></i> Retry</button></p></div>`;
     return;
   }
 
-  const title = data.title || id;
+  const title = data.title_english || data.title;
   const pref = localStorage.getItem(`ch_anime_pref_${id}`) || APP.settings.animePref;
-  const episodes = data.episodes || [];
+  const episodes = epsData?.data || [];
+  const poster = data.images?.jpg?.large_image_url || data.images?.jpg?.image_url || '';
+  const cover = data.trailer?.images?.maximum_image_url || poster;
+  const score = data.score ? data.score.toFixed(1) : 'N/A';
+  const year = data.aired?.from ? data.aired.from.slice(0,4) : (data.year || '');
+  const status = data.status || '';
+  const epCount = data.episodes || episodes.length || '?';
 
   el.innerHTML = `
     <div class="detail-backdrop">
-      <div class="detail-backdrop-img-div" style="background-image:url('${data.cover || data.image || ''}');"></div>
+      <div class="detail-backdrop-img-div" style="background-image:url('${cover}');"></div>
       <div class="detail-backdrop-gradient"></div>
     </div>
     <div class="detail-content">
       <div class="detail-poster">
-        <img src="${data.image || 'https://placehold.co/160x240/141414/444?text=Anime'}" alt="${title}">
+        <img src="${poster || 'https://placehold.co/160x240/141414/444?text=Anime'}" alt="${title}" onerror="this.src='https://placehold.co/160x240/141414/444?text=N/A'">
       </div>
       <div class="detail-info">
         <h1 class="detail-title">${title}</h1>
         <div class="detail-meta-row">
-          <span class="detail-rating">★ ${data.rating || 'N/A'}</span>
-          <span>${data.releaseDate || ''}</span>
-          <span>${data.status || ''}</span>
-          <span>${episodes.length} Episodes</span>
+          <span class="detail-rating">★ ${score}</span>
+          <span>${year}</span>
+          <span>${status}</span>
+          <span>${epCount} Episodes</span>
         </div>
-        <p class="detail-desc collapsed" id="detail-desc">${data.description || ''}</p>
+        <p class="detail-desc collapsed" id="detail-desc">${data.synopsis || ''}</p>
         <button class="read-more" onclick="toggleDesc()">Read more</button>
         <div class="dub-sub-toggle">
           <button class="dub-sub-btn ${pref==='dub'?'active':''}" onclick="setAnimePrefLocal('${id}','dub',this)">DUB</button>
           <button class="dub-sub-btn ${pref==='sub'?'active':''}" onclick="setAnimePrefLocal('${id}','sub',this)">SUB</button>
         </div>
         <div class="detail-actions">
-          <button class="btn btn-red btn-sm" onclick="playAnimeEpisode('${episodes[0]?.id||id}','${title}','${id}')"><i class="fas fa-play"></i> Play Ep 1</button>
-          <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')"><i class="fas fa-share-alt"></i> Share</button>
+          <button class="btn btn-red btn-sm" onclick="playAnimeByMalId('${id}','${title.replace(/'/g,"\\'")}',1)"><i class="fas fa-play"></i> Play Ep 1</button>
+          <button class="btn btn-grey btn-sm" onclick="shareItem('${title.replace(/'/g,"\\'")}')"><i class="fas fa-share-alt"></i> Share</button>
         </div>
       </div>
     </div>
     <div style="padding:0 4%;margin-top:28px;">
       <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;">Episodes</h3>
       <div class="episodes-grid">
-        ${episodes.slice(0,50).map((ep,i) => `
-          <div class="episode-item" onclick="playAnimeEpisode('${ep.id}','${title} - Ep ${ep.number}','${id}')">
+        ${episodes.length ? episodes.slice(0,50).map((ep) => `
+          <div class="episode-item" onclick="playAnimeByMalId('${id}','${title.replace(/'/g,"\\'")} - Ep ${ep.mal_id}',${ep.mal_id})">
             <div style="background:var(--surface2);width:120px;height:68px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;">▶</div>
             <div class="ep-info">
-              <div class="ep-num">EPISODE ${ep.number}</div>
-              <div class="ep-title">${ep.title || `Episode ${ep.number}`}</div>
+              <div class="ep-num">EPISODE ${ep.mal_id}</div>
+              <div class="ep-title">${ep.title || `Episode ${ep.mal_id}`}</div>
             </div>
-            ${ep.isFiller ? `<span style="font-size:10px;color:var(--amber);font-weight:700;">FILLER</span>` : ''}
-          </div>`).join('')}
+            ${ep.filler ? `<span style="font-size:10px;color:var(--amber);font-weight:700;">FILLER</span>` : ''}
+          </div>`).join('')
+        : `<p style="color:var(--text2);padding:10px 0;">Episode list not available. Use Play Ep 1 to start watching.</p>`}
       </div>
     </div>`;
+}
+
+// Play anime using MAL ID via embed player
+function playAnimeByMalId(malId, title, episode) {
+  navigate('player', { type: 'anime', malId, title, episode });
 }
 
 function setAnimePrefLocal(animeId, pref, btn) {
@@ -2323,28 +2382,36 @@ async function loadPlayerPage(params) {
   }
 
   if (params.type === 'anime') {
-    setTopBar(params.title || 'Anime', 'Anime Episode');
-    infoEl.innerHTML = `<div class="player-title">${params.title || 'Anime'}</div><div class="player-meta">Loading stream…</div>`;
-    const streamData = await consumetFetch(`/anime/gogoanime/watch/${params.epId}`);
-    const sources = streamData?.sources || [];
-    const best = sources.find(s => s.quality === '1080p') || sources.find(s => s.quality === '720p') || sources[0];
+    // Use embed players with MAL ID — much more reliable than Consumet streams
+    const malId = params.malId || params.animeId || params.epId;
+    const epNum = params.episode || 1;
+    const title = params.title || 'Anime';
+    setTopBar(title, `Episode ${epNum}`);
 
-    if (best?.url) {
-      injectPlayer(`<video id="anime-video" controls autoplay playsinline style="width:100%;aspect-ratio:16/9;background:#000;display:block;"></video>`);
-      const video = document.getElementById('anime-video');
-      if (Hls.isSupported()) {
-        const hls = new Hls({ enableWorker: true });
-        hls.loadSource(best.url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
-      } else if (video?.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = best.url;
-      }
-      saveToHistory({ id: params.animeId, type: 'anime', title: params.title, poster: '', rating: '' });
-    } else {
-      injectPlayer(buildIframe(getEmbedUrl(params.animeId || params.epId, 'movie', 1, 1, 'vidsrc')));
-    }
-    infoEl.innerHTML = `<div class="player-title">${params.title}</div><div class="player-meta">Anime · <span style="color:#46d369;">Streaming</span></div><div class="player-actions"><button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button></div>`;
+    // Anime embed sources using MAL ID
+    const animeSources = [
+      { key: 'yugen', label: 'YugenAnime', url: `https://yugenanime.tv/embed/?mal=${malId}&ep=${epNum}` },
+      { key: 'animepahe', label: 'AnimePahe', url: `https://animepahe.ru/embed/${malId}` },
+      { key: 'vidsrc_anime', label: 'VidSrc', url: `https://vidsrc.me/embed/tv?mal=${malId}&episode=${epNum}` },
+    ];
+
+    injectPlayer(buildIframe(animeSources[0].url));
+
+    const animeSourceBtns = animeSources.map((s,i) =>
+      `<button class="source-btn ${i===0?'active':''}" onclick="switchAnimeSource('${s.url}',this)">${s.label}</button>`
+    ).join('');
+
+    infoEl.innerHTML = `
+      <div class="player-title">${title}</div>
+      <div class="player-meta">Anime · Episode ${epNum} · <span style="color:#46d369;">Streaming</span></div>
+      <div class="player-actions">
+        <button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>
+      <div class="source-switcher">
+        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source if not loading</div>
+        <div class="source-btns">${animeSourceBtns}</div>
+      </div>`;
+    saveToHistory({ id: malId, type: 'anime', title, poster: '', rating: '' });
     return;
   }
 
@@ -2480,6 +2547,23 @@ function switchSource(id, type, season, episode, source, btn) {
   showToast(`▶ Switched to ${btn.textContent}`);
 }
 
+function switchAnimeSource(url, btn) {
+  document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const wrapper = document.getElementById('player-wrapper');
+  const old = wrapper.querySelector('iframe, video');
+  if (old) old.remove();
+  const iframe = document.createElement('iframe');
+  iframe.src = url;
+  iframe.allowFullscreen = true;
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.setAttribute('referrerpolicy', 'origin');
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+  iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
+  wrapper.appendChild(iframe);
+  showToast(`▶ Switched to ${btn.textContent}`);
+}
+
 // ─── SEARCH ───
 let searchTimer = null;
 function debounceSearch(val) {
@@ -2508,7 +2592,7 @@ async function runSearch(query) {
 
   const [tmdbRes, animeRes] = await Promise.all([
     APP.tmdbKey ? tmdb('/search/multi', { query, include_adult: APP.settings.adult18 ? true : false }) : null,
-    consumetFetch(`/anime/gogoanime?search=${encodeURIComponent(query)}`),
+    jikan('/anime', { q: query, limit: 12 }),
   ]);
 
   let results = [];
@@ -2516,7 +2600,7 @@ async function runSearch(query) {
     results = tmdbRes.results.filter(i => ['movie','tv'].includes(i.media_type) && (i.poster_path || i.backdrop_path));
   }
 
-  const animeItems = (animeRes?.results || []).map(a => ({ ...a, _type: 'anime' }));
+  const animeItems = (animeRes?.data || []).map(jikanToCard);
   const allItems = [...results, ...animeItems];
 
   const filtered = APP.searchFilter === 'all'
