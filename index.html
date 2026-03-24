@@ -1329,6 +1329,55 @@ body {
   gap: 8px;
 }
 
+/* ── DOWNLOAD MODAL ── */
+#dl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 3500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+#dl-modal-overlay.open { opacity: 1; pointer-events: all; }
+#dl-modal {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.08);
+  transform: scale(0.95);
+  transition: transform 0.22s ease;
+}
+#dl-modal-overlay.open #dl-modal { transform: scale(1); }
+#dl-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; display:flex;align-items:center;gap:8px; }
+#dl-modal .dl-subtitle { font-size:12px;color:var(--text3);margin-bottom:18px; }
+.dl-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  transition: var(--transition);
+}
+.dl-option:hover { border-color: var(--red); background: var(--surface3); }
+.dl-option-left { display:flex;align-items:center;gap:12px; }
+.dl-option-icon { font-size:22px;width:40px;height:40px;border-radius:8px;background:var(--surface3);display:flex;align-items:center;justify-content:center; }
+.dl-option-name { font-size:14px;font-weight:700; }
+.dl-option-desc { font-size:11px;color:var(--text2);margin-top:2px; }
+.dl-option-arrow { color:var(--text3);font-size:13px; }
+.dl-note { font-size:11px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.6; }
 </style>
 </head>
 <body>
@@ -1465,7 +1514,7 @@ body {
     <div id="player-page">
       <div class="player-theatre" id="player-wrapper">
         <div class="player-top-bar">
-          <button class="player-back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+          <button class="player-back-btn" onclick="stopActivePlayer();history.back()"><i class="fas fa-arrow-left"></i></button>
           <div>
             <div class="player-top-title" id="player-top-title">CloudHub</div>
             <div class="player-top-meta" id="player-top-meta"></div>
@@ -1504,7 +1553,7 @@ body {
       <button class="btn btn-grey btn-sm" onclick="lockAdultPage()"><i class="fas fa-lock"></i> Lock</button>
     </div>
     <div class="category-tabs" id="adult-cats"></div>
-    <div id="adult-content-area" style="padding:0 4% 80px;"></div>
+    <div id="adult-content-area" style="padding:0 4% 80px;overflow-x:hidden;"></div>
   </div>
 
 </div><!-- #app -->
@@ -1521,6 +1570,8 @@ body {
     <div class="settings-label">TMDB API Key</div>
     <input class="settings-input" id="s-tmdb-key" type="password" placeholder="Paste your TMDB API v3 key…">
     <p style="font-size:11px;color:var(--text3);margin-top:6px;">Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--red);">themoviedb.org/settings/api</a></p>
+    <button class="btn btn-grey btn-sm" style="margin-top:10px;width:100%;justify-content:center;" onclick="copyShareLink()"><i class="fas fa-share-alt"></i> Copy Share Link (send to friends)</button>
+    <p style="font-size:11px;color:var(--text3);margin-top:6px;">Generates a link that auto-loads your key on your friend's device</p>
   </div>
 
   <div class="settings-section">
@@ -1528,7 +1579,13 @@ body {
     <select class="settings-select" id="s-lang-pref" onchange="APP.settings.preferredLang=this.value;APP.playerLang=this.value;localStorage.setItem('ch_settings',JSON.stringify(APP.settings));showToast('Language preference saved')">
       <option value="original">🎬 Original Language</option>
       <option value="hindi">🇮🇳 Hindi Dubbed</option>
-      <option value="english">🇬🇧 English Dubbed</option>
+      <option value="english">🇬🇧 English</option>
+      <option value="bengali">🇧🇩 Bengali / Bangla</option>
+      <option value="tamil">🇮🇳 Tamil</option>
+      <option value="telugu">🇮🇳 Telugu</option>
+      <option value="spanish">🇪🇸 Spanish</option>
+      <option value="french">🇫🇷 French</option>
+      <option value="arabic">🇸🇦 Arabic</option>
     </select>
     <p style="font-size:11px;color:var(--text3);margin-top:6px;">You can also change language anytime in the player using the 🌐 button</p>
   </div>
@@ -1540,6 +1597,11 @@ body {
       <option value="en">English</option>
       <option value="hi">Hindi</option>
       <option value="bn">Bengali</option>
+      <option value="ta">Tamil</option>
+      <option value="te">Telugu</option>
+      <option value="ar">Arabic</option>
+      <option value="es">Spanish</option>
+      <option value="fr">French</option>
     </select>
   </div>
 
@@ -1632,6 +1694,19 @@ body {
   </div>
 </div>
 
+<!-- DOWNLOAD MODAL -->
+<div id="dl-modal-overlay" onclick="if(event.target===this)closeDlModal()">
+  <div id="dl-modal">
+    <h3><i class="fas fa-download" style="color:var(--red)"></i> <span id="dl-modal-title">Download</span></h3>
+    <div class="dl-subtitle">Choose a download source. Quality may vary.</div>
+    <div id="dl-options-list"></div>
+    <div class="dl-note"><i class="fas fa-info-circle"></i> These are third-party services. CloudHub does not host any files.<br>Use a download manager for best results.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-grey btn-sm" onclick="closeDlModal()"><i class="fas fa-times"></i> Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -1678,8 +1753,38 @@ APP.settings = Object.assign({
   preferredLang: 'original'
 }, APP.settings);
 
+// ─── KILL ACTIVE PLAYER (prevents background audio) ───
+function stopActivePlayer() {
+  const wrapper = document.getElementById('player-wrapper');
+  if (!wrapper) return;
+  // Stop HLS stream if active
+  if (APP._hlsInstance) {
+    try { APP._hlsInstance.destroy(); } catch(e) {}
+    APP._hlsInstance = null;
+  }
+  // Stop native video
+  const video = wrapper.querySelector('video');
+  if (video) {
+    video.pause();
+    video.src = '';
+    video.load();
+    video.remove();
+  }
+  // Remove iframe (stops embedded video audio)
+  const iframe = wrapper.querySelector('iframe');
+  if (iframe) {
+    iframe.src = 'about:blank';
+    iframe.remove();
+  }
+}
+
 // ─── ROUTING ───
 function navigate(page, params = {}) {
+  // Stop any playing media if leaving the player page
+  if (APP.currentPage === 'player' && page !== 'player') {
+    stopActivePlayer();
+  }
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
   document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
@@ -2164,35 +2269,87 @@ async function loadAnimeCat(cat, btn) {
 
 // ─── LIVE TV ───
 const LIVE_CHANNELS = [
-  { id: 'bbc', name: 'BBC World News', category: 'News', icon: '📺', color: '#BB1919',
+  // ── BANGLADESH ──
+  { id: 'btv', name: 'BTV World', category: '🇧🇩 Bangladesh', icon: '📺', color: '#006A4E',
+    url: 'https://btvworld.btvonline.gov.bd/hls/btvworld/index.m3u8' },
+  { id: 'atn_bangla', name: 'ATN Bangla', category: '🇧🇩 Bangladesh', icon: '🎬', color: '#E52222',
+    url: 'https://atn.akamaized.net/hls/live/2000001/atnbangla/playlist.m3u8' },
+  { id: 'ntv_bd', name: 'NTV Bangladesh', category: '🇧🇩 Bangladesh', icon: '📡', color: '#003580',
+    url: 'https://ntv.akamaized.net/hls/live/ntv/playlist.m3u8' },
+  { id: 'rtv_bd', name: 'RTV Bangladesh', category: '🇧🇩 Bangladesh', icon: '📻', color: '#FF6600',
+    url: 'https://rtv.akamaized.net/hls/live/rtv/playlist.m3u8' },
+  { id: 'somoy', name: 'Somoy TV', category: '🇧🇩 Bangladesh', icon: '⏱️', color: '#FF0000',
+    url: 'https://www.somoytvonline.com/live' },
+  { id: 'channel_i', name: 'Channel i', category: '🇧🇩 Bangladesh', icon: '🎭', color: '#00843D',
+    url: 'https://channeli.akamaized.net/hls/live/channeli/playlist.m3u8' },
+  { id: 'independent_tv', name: 'Independent TV', category: '🇧🇩 Bangladesh', icon: '🇧🇩', color: '#003580',
+    url: 'https://independent.akamaized.net/hls/live/independent/playlist.m3u8' },
+  { id: 'desh_tv', name: 'Desh TV', category: '🇧🇩 Bangladesh', icon: '🌙', color: '#006A4E',
+    url: 'https://deshtv.akamaized.net/hls/live/deshtv/playlist.m3u8' },
+  { id: 'maasranga', name: 'Maasranga TV', category: '🇧🇩 Bangladesh', icon: '🐟', color: '#FF4400',
+    url: 'https://maasranga.akamaized.net/hls/live/maasranga/playlist.m3u8' },
+  { id: 'gtv_bd', name: 'GTV (Gazi TV)', category: '🇧🇩 Bangladesh', icon: '⚽', color: '#1A5276',
+    url: 'https://gtv.akamaized.net/hls/live/gtv/playlist.m3u8' },
+  { id: 'boishakhi', name: 'Boishakhi TV', category: '🇧🇩 Bangladesh', icon: '🎶', color: '#CC0000',
+    url: 'https://boishakhi.akamaized.net/hls/live/boishakhi/playlist.m3u8' },
+  // ── INDIA ──
+  { id: 'dd_india', name: 'DD India', category: '🇮🇳 India', icon: '🏛️', color: '#FF9933',
+    url: 'https://ddindia.akamaized.net/hls/live/2029832/ddindia/index.m3u8' },
+  { id: 'dd_national', name: 'DD National', category: '🇮🇳 India', icon: '🇮🇳', color: '#138808',
+    url: 'https://ddnational.akamaized.net/hls/live/2029831/ddnational/index.m3u8' },
+  // ── NEWS ──
+  { id: 'bbc', name: 'BBC World News', category: '📰 News', icon: '📺', color: '#BB1919',
     url: 'https://vs1.hdstreamz.io:8443/bbcworld/index.m3u8' },
-  { id: 'aljazeera', name: 'Al Jazeera', category: 'News', icon: '🌍', color: '#00A859',
+  { id: 'aljazeera', name: 'Al Jazeera', category: '📰 News', icon: '🌍', color: '#00A859',
     url: 'https://live-hls-web-aje.getaj.net/AJE/index.m3u8' },
-  { id: 'cgtn', name: 'CGTN', category: 'News', icon: '🇨🇳', color: '#CE1126',
-    url: 'https://news.cgtn.com/resource/live/english/cgtn-news.m3u8' },
-  { id: 'cnn', name: 'CNN International', category: 'News', icon: '🗞️', color: '#CC0000',
+  { id: 'cnn', name: 'CNN International', category: '📰 News', icon: '🗞️', color: '#CC0000',
     url: 'https://cnn-cnninternational-1-eu.samsung.wurl.com/manifest/playlist.m3u8' },
-  { id: 'nasa', name: 'NASA TV', category: 'Science', icon: '🚀', color: '#1B3A6B',
-    url: 'https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8' },
-  { id: 'bloomberg', name: 'Bloomberg', category: 'Business', icon: '💹', color: '#333333',
-    url: 'https://cdn3.wowza.com/1/WVFGQzlxdnFoZEN4/cHJpbWFy/hls/live/playlist.m3u8' },
-  { id: 'france24en', name: 'France 24 EN', category: 'News', icon: '🇫🇷', color: '#003189',
-    url: 'https://stream.france24.com/hls/live/2037163/F24_EN_HI_HLS/master.m3u8' },
-  { id: 'lofi', name: 'Lofi Hip Hop Radio', category: 'Music', icon: '🎵', color: '#6B4F8C',
-    url: 'https://live.hunter.fm/hiphop_high' },
-  { id: 'euronews', name: 'Euronews', category: 'News', icon: '🇪🇺', color: '#003D87',
-    url: 'https://euronews-euronews-en-live.samsung.wurl.com/manifest/playlist.m3u8' },
-  { id: 'rt', name: 'RT International', category: 'News', icon: '📡', color: '#CD1B1B',
-    url: 'https://rt-glob.rttv.com/live/rtnews/playlist.m3u8' },
-  { id: 'dw', name: 'DW English', category: 'News', icon: '🌐', color: '#003E80',
+  { id: 'dw', name: 'DW English', category: '📰 News', icon: '🌐', color: '#003E80',
     url: 'https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8' },
-  { id: 'nhk', name: 'NHK World', category: 'News', icon: '🇯🇵', color: '#1A1A6E',
+  { id: 'france24en', name: 'France 24 EN', category: '📰 News', icon: '🇫🇷', color: '#003189',
+    url: 'https://stream.france24.com/hls/live/2037163/F24_EN_HI_HLS/master.m3u8' },
+  { id: 'euronews', name: 'Euronews', category: '📰 News', icon: '🇪🇺', color: '#003D87',
+    url: 'https://euronews-euronews-en-live.samsung.wurl.com/manifest/playlist.m3u8' },
+  { id: 'nhk', name: 'NHK World', category: '📰 News', icon: '🇯🇵', color: '#1A1A6E',
     url: 'https://nhkwlive-ojp.nhk.or.jp/hls/live/2003461/nhkwlive-ojp-en/index.m3u8' },
+  // ── SCIENCE / MUSIC ──
+  { id: 'nasa', name: 'NASA TV', category: '🔭 Science', icon: '🚀', color: '#1B3A6B',
+    url: 'https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8' },
+  { id: 'lofi', name: 'Lofi Hip Hop Radio', category: '🎵 Music', icon: '🎵', color: '#6B4F8C',
+    url: 'https://live.hunter.fm/hiphop_high' },
 ];
 
 function loadLivePage() {
   const grid = document.getElementById('live-grid');
-  grid.innerHTML = LIVE_CHANNELS.map(ch => `
+  const categories = [...new Set(LIVE_CHANNELS.map(c => c.category))];
+
+  // Insert or update filter tabs right before the grid
+  let tabsEl = document.getElementById('live-cat-tabs');
+  if (!tabsEl) {
+    tabsEl = document.createElement('div');
+    tabsEl.id = 'live-cat-tabs';
+    tabsEl.className = 'category-tabs';
+    tabsEl.style.cssText = 'padding:0 4%;margin-bottom:16px;margin-top:-4px;';
+    grid.parentNode.insertBefore(tabsEl, grid);
+  }
+  tabsEl.innerHTML = ['All', ...categories].map((c, i) =>
+    `<button class="cat-tab ${i===0?'active':''}" onclick="filterLiveChannels('${c.replace(/'/g,"\\'")}',this)">${c}</button>`
+  ).join('');
+  renderLiveChannels(LIVE_CHANNELS);
+}
+
+function filterLiveChannels(cat, btn) {
+  document.querySelectorAll('#live-cat-tabs .cat-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = (cat === 'All' || cat === 'All Channels')
+    ? LIVE_CHANNELS
+    : LIVE_CHANNELS.filter(c => c.category === cat);
+  renderLiveChannels(filtered);
+}
+
+function renderLiveChannels(channels) {
+  const grid = document.getElementById('live-grid');
+  grid.innerHTML = channels.map(ch => `
     <div class="live-card" onclick="openLiveChannel('${ch.id}')">
       <div class="live-card-img" style="background:linear-gradient(135deg,${ch.color}22,${ch.color}44);">
         <span style="font-size:40px;">${ch.icon}</span>
@@ -2279,8 +2436,8 @@ async function loadDetailPage({ id, type }) {
           <button class="btn btn-grey btn-sm" id="watchlist-btn" onclick="toggleWatchlist('${id}','${type}','${title}','${detail.poster_path||''}','${rating}')">
             <i class="fas fa-${inWatchlist?'check':'plus'} watchlist-icon ${inWatchlist?'added':''}"></i> ${inWatchlist?'Watchlisted':'Watchlist'}
           </button>
-          <button class="btn btn-grey btn-sm" onclick="downloadItem('${id}','${type}','${title}','${detail.poster_path||''}','${rating}')">
-            <i class="fas fa-${inDownloads?'check-circle':'download'}"></i> ${inDownloads?'Saved':'Download'}
+          <button class="btn btn-grey btn-sm" onclick="openDlModal('${id}','${type}','${title}','${detail.poster_path||''}','${rating}')">
+            <i class="fas fa-download"></i> Download
           </button>
           <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')">
             <i class="fas fa-share-alt"></i> Share
@@ -2485,9 +2642,15 @@ function showLangMenu(id, type, season, episode, currentLang) {
   if (existing) { existing.remove(); return; }
 
   const langs = [
-    { key: 'original', label: 'Original Language', flag: '🎬', sub: 'Native audio track' },
-    { key: 'hindi',    label: 'हिंदी (Hindi)',     flag: '🇮🇳', sub: 'Hindi dubbed version' },
-    { key: 'english',  label: 'English',            flag: '🇬🇧', sub: 'English dubbed / audio track' },
+    { key: 'original', label: 'Original Language',  flag: '🎬', sub: 'Native audio track' },
+    { key: 'hindi',    label: 'हिंदी (Hindi)',      flag: '🇮🇳', sub: 'Hindi dubbed version' },
+    { key: 'english',  label: 'English',             flag: '🇬🇧', sub: 'English audio track' },
+    { key: 'bengali',  label: 'বাংলা (Bengali)',    flag: '🇧🇩', sub: 'Bengali dubbed version' },
+    { key: 'tamil',    label: 'தமிழ் (Tamil)',      flag: '🎭', sub: 'Tamil dubbed version' },
+    { key: 'telugu',   label: 'తెలుగు (Telugu)',    flag: '🎭', sub: 'Telugu dubbed version' },
+    { key: 'spanish',  label: 'Español (Spanish)',   flag: '🇪🇸', sub: 'Spanish dubbed version' },
+    { key: 'french',   label: 'Français (French)',   flag: '🇫🇷', sub: 'French dubbed version' },
+    { key: 'arabic',   label: 'عربي (Arabic)',       flag: '🇸🇦', sub: 'Arabic dubbed version' },
   ];
 
   const menu = document.createElement('div');
@@ -2544,7 +2707,7 @@ function switchPlayerLang(id, type, season, episode, lang, triggerEl) {
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
   wrapper.appendChild(iframe);
 
-  const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English' };
+  const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English', bengali: '🇧🇩 Bengali', tamil: '🎭 Tamil', telugu: '🎭 Telugu', spanish: '🇪🇸 Spanish', french: '🇫🇷 French', arabic: '🇸🇦 Arabic' };
   showToast(`Audio: ${langLabels[lang] || lang}`);
 
   // Update active source button label to reflect current lang
@@ -2596,6 +2759,7 @@ async function loadPlayerPage(params) {
     const video = document.getElementById('live-video');
     if (ch?.url && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
+      APP._hlsInstance = hls;
       hls.loadSource(ch.url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
@@ -2633,7 +2797,7 @@ async function loadPlayerPage(params) {
       <div class="player-title">${title}</div>
       <div class="player-meta">Anime · Episode ${epNum} · <span style="color:#46d369;">Streaming</span></div>
       <div class="player-actions">
-        <button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn btn-grey btn-sm" onclick="stopActivePlayer();history.back()"><i class="fas fa-arrow-left"></i> Back</button>
       </div>
       <div class="source-switcher">
         <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source if not loading</div>
@@ -2665,7 +2829,7 @@ async function loadPlayerPage(params) {
       { key: 'moviesapi',    label: 'MoviesAPI' },
       { key: 'nontongo',     label: 'NontonGo' },
     ];
-    const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English' };
+    const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English', bengali: '🇧🇩 Bengali', tamil: '🎭 Tamil', telugu: '🎭 Telugu', spanish: '🇪🇸 Spanish', french: '🇫🇷 French', arabic: '🇸🇦 Arabic' };
     const currentLangLabel = langLabels[lang || 'original'] || '🎬 Original';
     return `
       <div class="player-actions" style="margin-top:4px;">
@@ -2696,6 +2860,7 @@ async function loadPlayerPage(params) {
           <button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-info-circle"></i> Details</button>
           ${type === 'tv' ? `<button class="btn btn-grey btn-sm" onclick="openDetail('${id}','${type}')"><i class="fas fa-list"></i> Episodes</button>` : ''}
           <button class="btn btn-grey btn-sm" onclick="shareItem('${title}')"><i class="fas fa-share-alt"></i> Share</button>
+          <button class="btn btn-grey btn-sm" onclick="openDlModal('${id}','${type}','${title}','${detail.poster_path||''}','${detail.vote_average?.toFixed(1)||''}',${season||1},${episode||1})"><i class="fas fa-download"></i> Download</button>
           <button class="btn btn-grey btn-sm" onclick="toggleWatchlist('${id}','${type}','${title}','${detail.poster_path||''}','${detail.vote_average?.toFixed(1)||''}')"><i class="fas fa-plus"></i> Watchlist</button>
         </div>
         ${buildSourcePanel(title)}`;
@@ -2709,42 +2874,45 @@ async function loadPlayerPage(params) {
 
 function getEmbedUrl(id, type, season, episode, source, lang = 'original') {
   const isTV = type === 'tv';
-  // Hindi dub: prefer multiembed (supports lang param) then hindilinks-style sources
-  if (lang === 'hindi') {
-    switch(source) {
+
+  // Language code map for multiembed / autoembed
+  const LANG_CODES = {
+    original: null,
+    hindi:    'hi',
+    english:  'en',
+    bengali:  'bn',
+    tamil:    'ta',
+    telugu:   'te',
+    spanish:  'es',
+    french:   'fr',
+    arabic:   'ar',
+  };
+  const lc = LANG_CODES[lang] || null;
+
+  // For dubbed languages use multiembed (best multi-lang support), except if user picked a specific source
+  if (lc && lang !== 'original') {
+    const useSource = ['multiembed','autoembed','vidsrcme'].includes(source) ? source : 'multiembed';
+    switch(useSource) {
       case 'multiembed':
         return isTV
-          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=hi`
-          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=hi`;
-      case 'vidsrcme':
-        return isTV
-          ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}&ds_lang=hi`
-          : `https://vidsrc.me/embed/movie?tmdb=${id}&ds_lang=hi`;
+          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=${lc}`
+          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=${lc}`;
       case 'autoembed':
         return isTV
-          ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}?lang=hi`
-          : `https://player.autoembed.cc/embed/movie/${id}?lang=hi`;
-      default:
-        // For Hindi, default to multiembed which best supports it
+          ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}?lang=${lc}`
+          : `https://player.autoembed.cc/embed/movie/${id}?lang=${lc}`;
+      case 'vidsrcme':
         return isTV
-          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=hi`
-          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=hi`;
-    }
-  }
-  // English dub
-  if (lang === 'english') {
-    switch(source) {
-      case 'multiembed':
-        return isTV
-          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=en`
-          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=en`;
+          ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}&ds_lang=${lc}`
+          : `https://vidsrc.me/embed/movie?tmdb=${id}&ds_lang=${lc}`;
       default:
         return isTV
-          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=en`
-          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=en`;
+          ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}&lang=${lc}`
+          : `https://multiembed.mov/?video_id=${id}&tmdb=1&lang=${lc}`;
     }
   }
-  // Original / default
+
+  // Original / default — use chosen source
   switch(source) {
     case 'vidsrc':
       return isTV
@@ -3245,80 +3413,294 @@ document.head.appendChild(manifestLink);
 
 
 function playAdultVideo(embedUrl, title) {
-  // Reuse the existing player page logic
   navigate('player', { type: 'adult_internal', embedUrl, title });
 }
 
-function renderAdultContent(filter) {
-  const area = document.getElementById('adult-content-area');
-  let html = '';
+// ─── ADULT CONTENT PIN & PAGE ───
+const ADULT_SITES = [
+  { cat: '🎬 Premium Streaming', sites: [
+    { name: 'Pornhub', icon: '🔞', desc: 'Free & Premium content', url: 'https://www.pornhub.com', color: 'linear-gradient(135deg,#1a1a1a,#333)', border: '#FF6600' },
+    { name: 'xVideos', icon: '🔥', desc: 'Largest video collection', url: 'https://www.xvideos.com', color: 'linear-gradient(135deg,#1a1a1a,#222)', border: '#E50914' },
+    { name: 'xHamster', icon: '⭐', desc: 'Millions of free videos', url: 'https://xhamster.com', color: 'linear-gradient(135deg,#1a1a1a,#2a2a2a)', border: '#FF9900' },
+    { name: 'RedTube', icon: '❤️', desc: 'Premium adult content', url: 'https://www.redtube.com', color: 'linear-gradient(135deg,#1a1a1a,#2a0000)', border: '#CC0000' },
+  ]},
+  { cat: '🌟 Popular Sites', sites: [
+    { name: 'XNXX', icon: '💥', desc: 'Free adult videos', url: 'https://www.xnxx.com', color: 'linear-gradient(135deg,#1a1a1a,#1a2a1a)', border: '#00AA00' },
+    { name: 'Youporn', icon: '🎭', desc: 'High quality content', url: 'https://www.youporn.com', color: 'linear-gradient(135deg,#1a1a1a,#222)', border: '#FF6600' },
+    { name: 'Tube8', icon: '🎬', desc: 'Free streaming', url: 'https://www.tube8.com', color: 'linear-gradient(135deg,#1a1a1a,#1a1a2a)', border: '#3366CC' },
+    { name: 'Spankbang', icon: '💫', desc: 'HD videos', url: 'https://spankbang.com', color: 'linear-gradient(135deg,#1a1a1a,#2a1a1a)', border: '#FF4400' },
+  ]},
+];
 
-  if (filter === 'Internal Player') {
-    html = `
-      <div style="margin-bottom:24px;">
-        <div class="search-bar-large" style="max-width:600px;margin:0 auto;">
-          <i class="fas fa-search search-icon-abs"></i>
-          <input type="text" placeholder="Search adult content to play internally..." oninput="debounceAdultSearch(this.value)">
-        </div>
-      </div>
-      <div id="adult-search-results" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
-        <div class="empty-state" style="grid-column:1/-1;padding:40px 20px;">
-          <i class="fas fa-play-circle"></i>
-          <h2>Internal Player</h2>
-          <p>Search above to find and play videos directly in CloudHub</p>
-        </div>
-      </div>
-    `;
+let adultPinBuffer = '';
+let adultUnlocked = false;
+let pinMode = 'unlock'; // 'unlock' | 'set'
+
+function openAdultPage() {
+  const saved = localStorage.getItem('ch_adult_pin');
+  if (adultUnlocked) { navigate('adult18'); return; }
+  adultPinBuffer = '';
+  updatePinDots();
+  if (saved) {
+    pinMode = 'unlock';
+    document.getElementById('adult-pin-title').textContent = '🔐 Enter PIN';
+    document.getElementById('adult-pin-subtitle').textContent = 'Enter your 4-digit PIN to access adult content';
+    document.getElementById('adult-pin-action-btn').textContent = 'Unlock';
   } else {
-    html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
+    pinMode = 'set';
+    document.getElementById('adult-pin-title').textContent = '🔒 Set a PIN';
+    document.getElementById('adult-pin-subtitle').textContent = 'Create a 4-digit PIN to protect adult content';
+    document.getElementById('adult-pin-action-btn').textContent = 'Set PIN';
+  }
+  document.getElementById('adult-pin-modal').classList.add('open');
+}
 
-    for (const cat of ADULT_SITES) {
-      html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
-      html += `<div class="adult-site-grid">`;
-      for (const s of cat.sites) {
-        html += `
-          <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
-            <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
-            <div class="adult-site-name">${s.name}</div>
-            <div class="adult-site-desc">${s.desc}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
-          </a>`;
-      }
-      html += `</div>`;
+function closeAdultPin() {
+  adultPinBuffer = '';
+  updatePinDots();
+  document.getElementById('adult-pin-modal').classList.remove('open');
+}
+
+function pinKey(k) {
+  if (k === '⌫') {
+    adultPinBuffer = adultPinBuffer.slice(0,-1);
+  } else if (adultPinBuffer.length < 4) {
+    adultPinBuffer += k;
+    if (adultPinBuffer.length === 4) {
+      setTimeout(confirmAdultPin, 150);
     }
   }
+  updatePinDots();
+}
 
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d'+i);
+    if (d) d.classList.toggle('filled', i < adultPinBuffer.length);
+  }
+}
+
+function confirmAdultPin() {
+  if (adultPinBuffer.length < 4) { showToast('Enter 4 digits'); return; }
+  if (pinMode === 'set') {
+    localStorage.setItem('ch_adult_pin', adultPinBuffer);
+    adultUnlocked = true;
+    closeAdultPin();
+    showToast('PIN set ✓');
+    navigate('adult18');
+  } else {
+    const saved = localStorage.getItem('ch_adult_pin');
+    if (adultPinBuffer === saved) {
+      adultUnlocked = true;
+      closeAdultPin();
+      navigate('adult18');
+    } else {
+      adultPinBuffer = '';
+      updatePinDots();
+      document.getElementById('adult-pin-subtitle').textContent = '❌ Wrong PIN. Try again.';
+      document.getElementById('adult-pin-subtitle').style.color = 'var(--red)';
+      setTimeout(() => {
+        document.getElementById('adult-pin-subtitle').textContent = 'Enter your 4-digit PIN to access adult content';
+        document.getElementById('adult-pin-subtitle').style.color = '';
+      }, 1500);
+    }
+  }
+}
+
+function resetAdultPin() {
+  showModal('Reset PIN', 'This will remove your adult PIN and lock adult content. Continue?', () => {
+    localStorage.removeItem('ch_adult_pin');
+    adultUnlocked = false;
+    closeAdultPin();
+    showToast('PIN reset');
+  });
+}
+
+function lockAdultPage() {
+  adultUnlocked = false;
+  navigate('home');
+  showToast('Adult content locked 🔒');
+}
+
+function loadAdultPage() {
+  const catsEl = document.getElementById('adult-cats');
+  const filters = ['Sites Directory'];
+  catsEl.innerHTML = filters.map((c,i) =>
+    `<button class="cat-tab ${i===0?'active':''}" onclick="renderAdultContent('${c}',this)">${c}</button>`
+  ).join('');
+  renderAdultContent('Sites Directory');
+}
+
+function renderAdultContent(filter, btn) {
+  if (btn) { document.querySelectorAll('#adult-cats .cat-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const area = document.getElementById('adult-content-area');
+  let html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);overflow:hidden;"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
+  for (const cat of ADULT_SITES) {
+    html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
+    html += `<div class="adult-site-grid">`;
+    for (const s of cat.sites) {
+      html += `
+        <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
+          <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
+          <div class="adult-site-name">${s.name}</div>
+          <div class="adult-site-desc">${s.desc}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
+        </a>`;
+    }
+    html += `</div>`;
+  }
   area.innerHTML = html;
 }
 
-// Override the loadPlayerPage function to handle the new 'adult_internal' type
+let adultSearchTimer = null;
+function debounceAdultSearch(val) {
+  clearTimeout(adultSearchTimer);
+  adultSearchTimer = setTimeout(() => runAdultSearch(val), 350);
+}
+
+async function runAdultSearch(query) {
+  const container = document.getElementById('adult-search-results');
+  if (!container) return;
+  if (!query.trim()) {
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:40px 20px;"><i class="fas fa-play-circle"></i><h2>Internal Player</h2><p>Search to find videos</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="spinner" style="grid-column:1/-1;"></div>`;
+  // Search via TMDB with adult filter
+  const results = await tmdb('/search/multi', { query, include_adult: true });
+  const items = (results?.results||[]).filter(i => i.poster_path || i.backdrop_path).slice(0,20);
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:40px 20px;"><i class="fas fa-search"></i><h2>No results</h2><p>Try a different search</p></div>`;
+    return;
+  }
+  container.innerHTML = items.map(i => buildCard(i, i.media_type || 'movie')).join('');
+}
+
+// ─── DOWNLOAD MODAL (CloudStream-style) ───
+function openDlModal(id, type, title, poster, rating, season, episode) {
+  const isTV = type === 'tv';
+  document.getElementById('dl-modal-title').textContent = title;
+
+  // Season/episode state for TV
+  let dlSeason = parseInt(season) || 1;
+  let dlEpisode = parseInt(episode) || 1;
+
+  function buildDlSources(s, e) {
+    const sources = [
+      { name: 'VidSrc.xyz',    icon: '▶', color:'#E50914', desc: 'HD · Multiple servers',      url: isTV ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${s}&episode=${e}` : `https://vidsrc.xyz/embed/movie?tmdb=${id}` },
+      { name: 'EmbedSu',       icon: '🎬', color:'#1565C0', desc: 'Fast · Multiple qualities',  url: isTV ? `https://embed.su/embed/tv/${id}/${s}/${e}` : `https://embed.su/embed/movie/${id}` },
+      { name: 'MoviesAPI',     icon: '📽', color:'#00695C', desc: 'Direct download links',      url: isTV ? `https://moviesapi.club/tv/${id}-${s}-${e}` : `https://moviesapi.club/movie/${id}` },
+      { name: 'SmashyStream',  icon: '⚡', color:'#F57F17', desc: 'Fast · Multiple servers',    url: isTV ? `https://player.smashy.stream/tv/${id}?s=${s}&e=${e}` : `https://player.smashy.stream/movie/${id}` },
+      { name: 'MultiEmbed',    icon: '🌐', color:'#6A1B9A', desc: 'Multi-language · HD',        url: isTV ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` : `https://multiembed.mov/?video_id=${id}&tmdb=1` },
+      { name: 'VidSrc.me',     icon: '🎥', color:'#1B3A6B', desc: 'Reliable · Good quality',   url: isTV ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}` : `https://vidsrc.me/embed/movie?tmdb=${id}` },
+    ];
+    return sources.map(src => `
+      <a class="dl-option" href="${src.url}" target="_blank" rel="noopener noreferrer">
+        <div class="dl-option-left">
+          <div class="dl-option-icon" style="background:${src.color}22;border:1px solid ${src.color}44;color:${src.color};font-size:16px;">${src.icon}</div>
+          <div>
+            <div class="dl-option-name">${src.name}</div>
+            <div class="dl-option-desc">${src.desc}</div>
+          </div>
+        </div>
+        <div class="dl-option-arrow"><i class="fas fa-external-link-alt"></i></div>
+      </a>`).join('');
+  }
+
+  function renderDlModal() {
+    const tvControls = isTV ? `
+      <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 12px;">
+          <span style="font-size:12px;color:var(--text3);font-weight:700;">SEASON</span>
+          <button onclick="dlChangeSE(-1,0)" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;font-size:16px;">‹</button>
+          <span id="dl-season-num" style="font-size:16px;font-weight:700;min-width:24px;text-align:center;">${dlSeason}</span>
+          <button onclick="dlChangeSE(1,0)" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;font-size:16px;">›</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 12px;">
+          <span style="font-size:12px;color:var(--text3);font-weight:700;">EPISODE</span>
+          <button onclick="dlChangeSE(0,-1)" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;font-size:16px;">‹</button>
+          <span id="dl-ep-num" style="font-size:16px;font-weight:700;min-width:24px;text-align:center;">${dlEpisode}</span>
+          <button onclick="dlChangeSE(0,1)" style="background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 6px;font-size:16px;">›</button>
+        </div>
+      </div>` : '';
+    document.getElementById('dl-options-list').innerHTML = tvControls + buildDlSources(dlSeason, dlEpisode);
+  }
+
+  // Expose season/episode change to global scope temporarily
+  window.dlChangeSE = function(ds, de) {
+    dlSeason = Math.max(1, dlSeason + ds);
+    dlEpisode = Math.max(1, dlEpisode + de);
+    renderDlModal();
+  };
+
+  downloadItem(id, type, title, poster, rating);
+  renderDlModal();
+  document.getElementById('dl-modal-overlay').classList.add('open');
+}
+
+function closeDlModal() {
+  document.getElementById('dl-modal-overlay').classList.remove('open');
+}
+
+// ─── URL KEY SHARING ───
+function copyShareLink() {
+  const key = APP.tmdbKey || document.getElementById('s-tmdb-key').value.trim();
+  if (!key) { showToast('⚠ No API key saved yet'); return; }
+  const base = window.location.href.split('?')[0].split('#')[0];
+  const link = `${base}?key=${encodeURIComponent(key)}`;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('📋 Share link copied! Send it to your friends');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = link; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('📋 Share link copied!');
+  });
+}
+
+// Auto-load API key from URL (so friend's device gets key automatically)
+(function() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlKey = urlParams.get('key');
+    if (urlKey && urlKey.length > 10 && !APP.tmdbKey) {
+      APP.tmdbKey = urlKey;
+      localStorage.setItem('ch_tmdb_key', urlKey);
+      // Clean the key from URL without reload
+      const cleanUrl = window.location.href.split('?')[0];
+      window.history.replaceState({}, '', cleanUrl);
+      showToast('✅ API key loaded from link!');
+    }
+  } catch(e) {}
+})();
+
+// Override the loadPlayerPage function to handle the 'adult_internal' type
 const originalLoadPlayerPage = loadPlayerPage;
 loadPlayerPage = async function(params) {
   if (params.type === 'adult_internal') {
     const wrapper = document.getElementById('player-wrapper');
     const infoEl = document.getElementById('player-info');
-    
     const t = document.getElementById('player-top-title');
     const m = document.getElementById('player-top-meta');
     if (t) t.textContent = params.title;
     if (m) m.textContent = 'Internal Player';
-
     const old = wrapper.querySelector('iframe, video');
-    if (old) old.remove();
-    
-    wrapper.innerHTML += `<iframe src="${params.embedUrl}" allowfullscreen allow="autoplay; fullscreen" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>`;
-
+    if (old) { old.src = 'about:blank'; old.remove(); }
+    const iframe = document.createElement('iframe');
+    iframe.src = params.embedUrl;
+    iframe.allowFullscreen = true;
+    iframe.allow = 'autoplay; fullscreen';
+    iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
+    wrapper.appendChild(iframe);
     infoEl.innerHTML = `
       <div class="player-title">${params.title}</div>
       <div class="player-meta"><span style="color:var(--red);font-weight:bold;">18+</span> · Internal Player</div>
       <div class="player-actions">
-        <button class="btn btn-grey btn-sm" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
-      </div>
-    `;
+        <button class="btn btn-grey btn-sm" onclick="stopActivePlayer();history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>`;
     return;
   }
-  
-  // Call original for everything else
   return originalLoadPlayerPage(params);
 };
 
