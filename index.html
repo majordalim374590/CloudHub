@@ -1254,80 +1254,7 @@ body {
 /* Watchlist added icon */
 .watchlist-icon.added { color: var(--red) !important; }
 
-/* ── PIN MODAL ── */
-.pin-dot {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
-  background: transparent;
-  transition: all 0.15s ease;
-}
-.pin-dot.filled {
-  background: var(--red);
-  border-color: var(--red);
-}
-.pin-key {
-  background: var(--surface2);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  font-family: inherit;
-}
-.pin-key:hover { background: var(--surface3); border-color: rgba(255,255,255,0.3); }
-.pin-key:empty { cursor: default; background: transparent; border-color: transparent; }
 
-/* Adult page cards */
-.adult-site-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-  margin-bottom: 30px;
-}
-.adult-site-card {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 20px 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: var(--transition);
-  text-decoration: none;
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.adult-site-card:hover {
-  border-color: var(--red);
-  background: var(--surface2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-}
-.adult-site-icon {
-  font-size: 36px;
-  width: 64px; height: 64px;
-  border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 900;
-}
-.adult-site-name { font-size: 15px; font-weight: 700; }
-.adult-site-desc { font-size: 12px; color: var(--text2); }
-.adult-section-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 14px;
-  margin-top: 4px;
-  color: var(--text2);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* ── DOWNLOAD MODAL ── */
 #dl-modal-overlay {
@@ -1408,7 +1335,7 @@ body {
     <button class="icon-btn" onclick="navigate('history')" title="History"><i class="fas fa-history"></i></button>
     <button class="icon-btn" onclick="navigate('downloads')" title="Downloads"><i class="fas fa-download"></i></button>
     <button class="icon-btn" onclick="openSettings()" title="Settings"><i class="fas fa-cog"></i></button>
-    <button class="profile-btn" onclick="openAdultPage()" title="Profile" style="position:relative;">U</button>
+    <button class="profile-btn" onclick="openSettings()" title="Settings" style="position:relative;">U</button>
   </div>
 </nav>
 
@@ -1543,18 +1470,6 @@ body {
     <div id="storage-info" style="padding:0 4% 16px;font-size:13px;color:var(--text2);"></div>
     <div class="history-grid" id="downloads-grid"></div>
   </div>
-  <!-- ADULT CONTENT PAGE (Hidden / PIN protected) -->
-  <div id="page-adult18" class="page">
-    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <div>
-        <h1>🔞 Adult Hub</h1>
-        <p style="color:var(--text2);">Premium adult content — 18+ only</p>
-      </div>
-      <button class="btn btn-grey btn-sm" onclick="lockAdultPage()"><i class="fas fa-lock"></i> Lock</button>
-    </div>
-    <div class="category-tabs" id="adult-cats"></div>
-    <div id="adult-content-area" style="padding:0 4% 80px;overflow-x:hidden;"></div>
-  </div>
 
 </div><!-- #app -->
 
@@ -1619,10 +1534,6 @@ body {
       <button class="toggle-switch on" id="s-autoplay" onclick="this.classList.toggle('on')"></button>
     </div>
     <div class="settings-toggle">
-      <span style="display:flex;align-items:center;gap:6px;">🔞 Adult Content (18+) <span style="font-size:10px;color:var(--red);font-weight:700;border:1px solid var(--red);padding:1px 5px;border-radius:3px;">18+</span></span>
-      <button class="toggle-switch" id="s-adult" onclick="toggle18Plus(this)"></button>
-    </div>
-    <div class="settings-toggle">
       <span>HD Quality Preferred</span>
       <button class="toggle-switch on" id="s-hd" onclick="this.classList.toggle('on')"></button>
     </div>
@@ -1656,43 +1567,6 @@ body {
   </div>
 </div>
 
-<!-- ADULT PIN MODAL -->
-<div class="modal-overlay" id="adult-pin-modal">
-  <div class="modal" style="max-width:340px;">
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:36px;margin-bottom:8px;">🔐</div>
-      <h3 id="adult-pin-title">Enter PIN</h3>
-      <p id="adult-pin-subtitle" style="font-size:13px;color:var(--text2);">Enter your 4-digit PIN to access adult content</p>
-    </div>
-    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;" id="pin-dots">
-      <div class="pin-dot" id="d0"></div>
-      <div class="pin-dot" id="d1"></div>
-      <div class="pin-dot" id="d2"></div>
-      <div class="pin-dot" id="d3"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 16px;">
-      <button class="pin-key" onclick="pinKey('1')">1</button>
-      <button class="pin-key" onclick="pinKey('2')">2</button>
-      <button class="pin-key" onclick="pinKey('3')">3</button>
-      <button class="pin-key" onclick="pinKey('4')">4</button>
-      <button class="pin-key" onclick="pinKey('5')">5</button>
-      <button class="pin-key" onclick="pinKey('6')">6</button>
-      <button class="pin-key" onclick="pinKey('7')">7</button>
-      <button class="pin-key" onclick="pinKey('8')">8</button>
-      <button class="pin-key" onclick="pinKey('9')">9</button>
-      <button class="pin-key" style="cursor:default;background:transparent;border-color:transparent;"></button>
-      <button class="pin-key" onclick="pinKey('0')">0</button>
-      <button class="pin-key" onclick="pinKey('⌫')">⌫</button>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-grey btn-sm" style="flex:1;" onclick="closeAdultPin()">Cancel</button>
-      <button class="btn btn-red btn-sm" style="flex:1;" id="adult-pin-action-btn" onclick="confirmAdultPin()">Unlock</button>
-    </div>
-    <p style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3);">
-      <span onclick="resetAdultPin()" style="cursor:pointer;color:var(--red);">Forgot PIN? Reset</span>
-    </p>
-  </div>
-</div>
 
 <!-- DOWNLOAD MODAL -->
 <div id="dl-modal-overlay" onclick="if(event.target===this)closeDlModal()">
@@ -1827,7 +1701,6 @@ function navigate(page, params = {}) {
     case 'downloads': loadDownloadsPage(); break;
     case 'detail': loadDetailPage(params); break;
     case 'player': loadPlayerPage(params); break;
-    case 'adult18': loadAdultPage(); break;
   }
 }
 
@@ -2045,18 +1918,6 @@ async function loadHome() {
   html += buildRow('⭐ Top Rated Movies', top_movies?.results, 'movie', 'movies');
   html += buildRow('📺 Popular Series', pop_series?.results, 'tv', 'series');
 
-  // Adult content rows (18+) - all categories
-  if (APP.settings.adult18) {
-    const [adultMovies, adultRomance, adultTV] = await Promise.all([
-      tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', 'vote_count.gte': 100 }),
-      tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 }),
-      tmdb('/discover/tv',    { include_adult: true, sort_by: 'popularity.desc' }),
-    ]);
-    if (adultMovies?.results?.length)  html += buildRow('🔞 Adult Movies — Popular',  adultMovies.results,  'movie', 'movies');
-    if (adultRomance?.results?.length) html += buildRow('💋 Romance & Adult Drama',   adultRomance.results, 'movie', 'movies');
-    if (adultTV?.results?.length)      html += buildRow('🔞 Adult TV Shows',           adultTV.results,      'tv',    'series');
-  }
-
   // Hindi Cartoons row (static)
   html += buildRow('🎌 Classic Hindi Cartoons', HINDI_CARTOONS, 'hindi', '');
 
@@ -2149,7 +2010,7 @@ async function loadMoviesPage() {
   const grid = document.getElementById('movies-grid');
   grid.innerHTML = skeleton(12);
   const catsEl = document.getElementById('movies-cats');
-  catsEl.innerHTML = ['Popular','Top Rated','Now Playing','Upcoming','Action','Comedy','Drama','Horror','Sci-Fi','Animation','🔞 18+'].map((c,i) =>
+  catsEl.innerHTML = ['Popular','Top Rated','Now Playing','Upcoming','Action','Comedy','Drama','Horror','Sci-Fi','Animation'].map((c,i) =>
     `<button class="cat-tab ${i===0?'active':''}" onclick="loadMoviesCat('${c}',this)">${c}</button>`
   ).join('');
   await loadMoviesCat('Popular', catsEl.querySelector('.active'));
@@ -2175,11 +2036,6 @@ async function loadMoviesCat(cat, btn) {
   };
   const genreMap = { Action: 28, Comedy: 35, Drama: 18, Horror: 27, 'Sci-Fi': 878, Animation: 16 };
   const params = genreMap[cat] ? { with_genres: genreMap[cat] } : {};
-  if (cat === '🔞 18+') {
-    const data = await tmdb('/discover/movie', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 });
-    grid.innerHTML = (data?.results || []).map(i => buildCard(i,'movie')).join('');
-    return;
-  }
   const data = await tmdb(endpoints[cat] || '/movie/popular', params);
   grid.innerHTML = (data?.results || []).map(i => buildCard(i,'movie')).join('');
 }
@@ -2189,7 +2045,7 @@ async function loadSeriesPage() {
   const grid = document.getElementById('series-grid');
   grid.innerHTML = skeleton(12);
   const catsEl = document.getElementById('series-cats');
-  catsEl.innerHTML = ['Popular','Top Rated','On The Air','Action','Drama','Comedy','Sci-Fi','Crime','Documentary','🔞 18+'].map((c,i) =>
+  catsEl.innerHTML = ['Popular','Top Rated','On The Air','Action','Drama','Comedy','Sci-Fi','Crime','Documentary'].map((c,i) =>
     `<button class="cat-tab ${i===0?'active':''}" onclick="loadSeriesCat('${c}',this)">${c}</button>`
   ).join('');
   await loadSeriesCat('Popular', catsEl.querySelector('.active'));
@@ -2213,11 +2069,6 @@ async function loadSeriesCat(cat, btn) {
   };
   const genreMapTV = { Action: 10759, Drama: 18, Comedy: 35, 'Sci-Fi': 10765, Crime: 80, Documentary: 99 };
   const params = genreMapTV[cat] ? { with_genres: genreMapTV[cat] } : {};
-  if (cat === '🔞 18+') {
-    const data = await tmdb('/discover/tv', { include_adult: true, sort_by: 'popularity.desc', with_genres: 10749 });
-    grid.innerHTML = (data?.results || []).map(i => buildCard(i,'tv')).join('');
-    return;
-  }
   const data = await tmdb(endpoints[cat] || '/tv/popular', params);
   grid.innerHTML = (data?.results || []).map(i => buildCard(i,'tv')).join('');
 }
@@ -2782,9 +2633,12 @@ async function loadPlayerPage(params) {
 
     // Anime embed sources using MAL ID
     const animeSources = [
-      { key: 'yugen', label: 'YugenAnime', url: `https://yugenanime.tv/embed/?mal=${malId}&ep=${epNum}` },
-      { key: 'animepahe', label: 'AnimePahe', url: `https://animepahe.ru/embed/${malId}` },
-      { key: 'vidsrc_anime', label: 'VidSrc', url: `https://vidsrc.me/embed/tv?mal=${malId}&episode=${epNum}` },
+      { key: 'animekai',    label: 'AnimeKai',    url: `https://animekai.to/embed/mal/${malId}?ep=${epNum}` },
+      { key: 'aniwatch',    label: 'AniWatch',    url: `https://aniwatch.to/embed-1?id=${malId}&ep=${epNum}` },
+      { key: '9anime',      label: '9Anime',      url: `https://9anime.to/ajax/anime/embed?id=${malId}&ep=${epNum}` },
+      { key: 'yugen',       label: 'YugenAnime',  url: `https://yugenanime.tv/embed/?mal=${malId}&ep=${epNum}` },
+      { key: 'animepahe',   label: 'AnimePahe',   url: `https://animepahe.ru/embed/${malId}` },
+      { key: 'vidsrc_anime',label: 'VidSrc',      url: `https://vidsrc.me/embed/tv?mal=${malId}&episode=${epNum}` },
     ];
 
     injectPlayer(buildIframe(animeSources[0].url));
@@ -3030,7 +2884,7 @@ async function runSearch(query) {
   r.innerHTML = skeleton(8);
 
   const [tmdbRes, animeRes] = await Promise.all([
-    APP.tmdbKey ? tmdb('/search/multi', { query, include_adult: APP.settings.adult18 ? true : false }) : null,
+    APP.tmdbKey ? tmdb('/search/multi', { query }) : null,
     jikan('/anime', { q: query, limit: 12 }),
   ]);
 
@@ -3239,7 +3093,6 @@ function openSettings() {
   document.getElementById('s-source-prio').value = APP.settings.sourcePrio || 'vidsrcme';
   document.getElementById('s-lang-pref').value = APP.settings.preferredLang || 'original';
   document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay !== false);
-  document.getElementById('s-adult').classList.toggle('on', !!APP.settings.adult18);
   setAnimePref(APP.settings.animePref || 'sub', true);
 }
 function closeSettings() {
@@ -3263,14 +3116,6 @@ function saveSettings() {
   localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
 }
 
-function toggle18Plus(btn) {
-  btn.classList.toggle('on');
-  APP.settings.adult18 = btn.classList.contains('on');
-  localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
-  showToast(APP.settings.adult18 ? '🔞 Adult content enabled' : 'Adult content disabled');
-  APP.cache = {};
-  if (APP.currentPage === 'home') loadHome();
-}
 
 function setAnimePref(pref, silent = false) {
   APP.settings.animePref = pref;
@@ -3351,12 +3196,18 @@ const GENRE_MAP = {
 
 // ─── HINDI CARTOONS (Static) ───
 const HINDI_CARTOONS = [
-  { id: 'doraemon', tmdbId: 10511, type: 'tv', title: 'Doraemon', image: 'https://image.tmdb.org/t/p/w342/bjXacJT8u8bVCRCMlNTX1BCTWI2.jpg', vote_average: 8.2, release_date: '1979' },
-  { id: 'shinchan', tmdbId: 2643, type: 'tv', title: 'Shinchan', image: 'https://image.tmdb.org/t/p/w342/t1dSfKLxLuWMqHaqEf9eUiRanFv.jpg', vote_average: 8.5, release_date: '1992' },
-  { id: 'ninjahat', tmdbId: 14544, type: 'tv', title: 'Ninja Hattori', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Ninja+Hattori', vote_average: 8.0, release_date: '1981' },
-  { id: 'motupatlu', tmdbId: 0, type: 'tv', title: 'Motu Patlu', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Motu+Patlu', vote_average: 7.5, release_date: '2012' },
-  { id: 'chhotabheem', tmdbId: 0, type: 'tv', title: 'Chhota Bheem', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Chhota+Bheem', vote_average: 8.1, release_date: '2008' },
-  { id: 'pkid', tmdbId: 0, type: 'tv', title: 'Pkid', image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=P.Kid', vote_average: 7.0, release_date: '2010' },
+  { id: 'doraemon',     tmdbId: 10511, type: 'tv', title: 'Doraemon',        image: 'https://image.tmdb.org/t/p/w342/bjXacJT8u8bVCRCMlNTX1BCTWI2.jpg',   vote_average: 8.2, release_date: '1979' },
+  { id: 'shinchan',     tmdbId: 2643,  type: 'tv', title: 'Shinchan',        image: 'https://image.tmdb.org/t/p/w342/t1dSfKLxLuWMqHaqEf9eUiRanFv.jpg',   vote_average: 8.5, release_date: '1992' },
+  { id: 'ninjahat',     tmdbId: 14544, type: 'tv', title: 'Ninja Hattori',   image: 'https://image.tmdb.org/t/p/w342/qUHbDGeMSUwBiLQCVr8RHqBolDy.jpg',   vote_average: 8.0, release_date: '1981' },
+  { id: 'motupatlu',    tmdbId: 63990, type: 'tv', title: 'Motu Patlu',      image: 'https://image.tmdb.org/t/p/w342/7yMTT9yBcEzEPdw8RNH7k3yiDfE.jpg',   vote_average: 7.5, release_date: '2012' },
+  { id: 'chhotabheem',  tmdbId: 36361, type: 'tv', title: 'Chhota Bheem',    image: 'https://image.tmdb.org/t/p/w342/yNeaRvLVRVPAihnSRWWXHjPxQNe.jpg',   vote_average: 8.1, release_date: '2008' },
+  { id: 'robotboy',     tmdbId: 11690, type: 'tv', title: 'Roll No. 21',     image: 'https://image.tmdb.org/t/p/w342/mXyQGHx9YolbhkYEjM0nBoleFHT.jpg',   vote_average: 7.8, release_date: '2009' },
+  { id: 'nobita',       tmdbId: 10511, type: 'tv', title: 'Nobita & Friends', image: 'https://image.tmdb.org/t/p/w342/8WBSguwjYJCkwuuoJPbQimN6Hlg.jpg',  vote_average: 8.0, release_date: '2005' },
+  { id: 'krishna',      tmdbId: 0,     type: 'tv', title: 'Little Krishna',  image: 'https://image.tmdb.org/t/p/w342/xzLhOvxCWRUHnJmr7T9aXmrqyDu.jpg',   vote_average: 8.3, release_date: '2009' },
+  { id: 'tenali',       tmdbId: 0,     type: 'tv', title: 'Tenali Rama',     image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Tenali+Rama',        vote_average: 7.6, release_date: '2010' },
+  { id: 'chulbulbheem', tmdbId: 0,     type: 'tv', title: 'Chulbul',         image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Chulbul',            vote_average: 7.2, release_date: '2011' },
+  { id: 'gadget',       tmdbId: 1405,  type: 'tv', title: 'Inspector Gadget', image: 'https://image.tmdb.org/t/p/w342/zjFUOHPNnAZbkANKn4c2ZjxD0cA.jpg',  vote_average: 7.5, release_date: '1983' },
+  { id: 'tom_jerry',    tmdbId: 516,   type: 'tv', title: 'Tom & Jerry',     image: 'https://image.tmdb.org/t/p/w342/fev8UFNFFYsD5q7AcYS8LyTzqwl.jpg',   vote_average: 8.4, release_date: '1940' },
 ];
 
 // ─── SERVICE WORKER ───
@@ -3412,171 +3263,8 @@ document.head.appendChild(manifestLink);
 
 
 
-function playAdultVideo(embedUrl, title) {
-  navigate('player', { type: 'adult_internal', embedUrl, title });
-}
-
-// ─── ADULT CONTENT PIN & PAGE ───
-const ADULT_SITES = [
-  { cat: '🎬 Premium Streaming', sites: [
-    { name: 'Pornhub', icon: '🔞', desc: 'Free & Premium content', url: 'https://www.pornhub.com', color: 'linear-gradient(135deg,#1a1a1a,#333)', border: '#FF6600' },
-    { name: 'xVideos', icon: '🔥', desc: 'Largest video collection', url: 'https://www.xvideos.com', color: 'linear-gradient(135deg,#1a1a1a,#222)', border: '#E50914' },
-    { name: 'xHamster', icon: '⭐', desc: 'Millions of free videos', url: 'https://xhamster.com', color: 'linear-gradient(135deg,#1a1a1a,#2a2a2a)', border: '#FF9900' },
-    { name: 'RedTube', icon: '❤️', desc: 'Premium adult content', url: 'https://www.redtube.com', color: 'linear-gradient(135deg,#1a1a1a,#2a0000)', border: '#CC0000' },
-  ]},
-  { cat: '🌟 Popular Sites', sites: [
-    { name: 'XNXX', icon: '💥', desc: 'Free adult videos', url: 'https://www.xnxx.com', color: 'linear-gradient(135deg,#1a1a1a,#1a2a1a)', border: '#00AA00' },
-    { name: 'Youporn', icon: '🎭', desc: 'High quality content', url: 'https://www.youporn.com', color: 'linear-gradient(135deg,#1a1a1a,#222)', border: '#FF6600' },
-    { name: 'Tube8', icon: '🎬', desc: 'Free streaming', url: 'https://www.tube8.com', color: 'linear-gradient(135deg,#1a1a1a,#1a1a2a)', border: '#3366CC' },
-    { name: 'Spankbang', icon: '💫', desc: 'HD videos', url: 'https://spankbang.com', color: 'linear-gradient(135deg,#1a1a1a,#2a1a1a)', border: '#FF4400' },
-  ]},
-];
-
-let adultPinBuffer = '';
-let adultUnlocked = false;
-let pinMode = 'unlock'; // 'unlock' | 'set'
-
-function openAdultPage() {
-  const saved = localStorage.getItem('ch_adult_pin');
-  if (adultUnlocked) { navigate('adult18'); return; }
-  adultPinBuffer = '';
-  updatePinDots();
-  if (saved) {
-    pinMode = 'unlock';
-    document.getElementById('adult-pin-title').textContent = '🔐 Enter PIN';
-    document.getElementById('adult-pin-subtitle').textContent = 'Enter your 4-digit PIN to access adult content';
-    document.getElementById('adult-pin-action-btn').textContent = 'Unlock';
-  } else {
-    pinMode = 'set';
-    document.getElementById('adult-pin-title').textContent = '🔒 Set a PIN';
-    document.getElementById('adult-pin-subtitle').textContent = 'Create a 4-digit PIN to protect adult content';
-    document.getElementById('adult-pin-action-btn').textContent = 'Set PIN';
-  }
-  document.getElementById('adult-pin-modal').classList.add('open');
-}
-
-function closeAdultPin() {
-  adultPinBuffer = '';
-  updatePinDots();
-  document.getElementById('adult-pin-modal').classList.remove('open');
-}
-
-function pinKey(k) {
-  if (k === '⌫') {
-    adultPinBuffer = adultPinBuffer.slice(0,-1);
-  } else if (adultPinBuffer.length < 4) {
-    adultPinBuffer += k;
-    if (adultPinBuffer.length === 4) {
-      setTimeout(confirmAdultPin, 150);
-    }
-  }
-  updatePinDots();
-}
-
-function updatePinDots() {
-  for (let i = 0; i < 4; i++) {
-    const d = document.getElementById('d'+i);
-    if (d) d.classList.toggle('filled', i < adultPinBuffer.length);
-  }
-}
-
-function confirmAdultPin() {
-  if (adultPinBuffer.length < 4) { showToast('Enter 4 digits'); return; }
-  if (pinMode === 'set') {
-    localStorage.setItem('ch_adult_pin', adultPinBuffer);
-    adultUnlocked = true;
-    closeAdultPin();
-    showToast('PIN set ✓');
-    navigate('adult18');
-  } else {
-    const saved = localStorage.getItem('ch_adult_pin');
-    if (adultPinBuffer === saved) {
-      adultUnlocked = true;
-      closeAdultPin();
-      navigate('adult18');
-    } else {
-      adultPinBuffer = '';
-      updatePinDots();
-      document.getElementById('adult-pin-subtitle').textContent = '❌ Wrong PIN. Try again.';
-      document.getElementById('adult-pin-subtitle').style.color = 'var(--red)';
-      setTimeout(() => {
-        document.getElementById('adult-pin-subtitle').textContent = 'Enter your 4-digit PIN to access adult content';
-        document.getElementById('adult-pin-subtitle').style.color = '';
-      }, 1500);
-    }
-  }
-}
-
-function resetAdultPin() {
-  showModal('Reset PIN', 'This will remove your adult PIN and lock adult content. Continue?', () => {
-    localStorage.removeItem('ch_adult_pin');
-    adultUnlocked = false;
-    closeAdultPin();
-    showToast('PIN reset');
-  });
-}
-
-function lockAdultPage() {
-  adultUnlocked = false;
-  navigate('home');
-  showToast('Adult content locked 🔒');
-}
-
-function loadAdultPage() {
-  const catsEl = document.getElementById('adult-cats');
-  const filters = ['Sites Directory'];
-  catsEl.innerHTML = filters.map((c,i) =>
-    `<button class="cat-tab ${i===0?'active':''}" onclick="renderAdultContent('${c}',this)">${c}</button>`
-  ).join('');
-  renderAdultContent('Sites Directory');
-}
-
-function renderAdultContent(filter, btn) {
-  if (btn) { document.querySelectorAll('#adult-cats .cat-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
-  const area = document.getElementById('adult-content-area');
-  let html = `<div style="background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.25);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);overflow:hidden;"><i class="fas fa-exclamation-triangle" style="color:var(--red);margin-right:8px;"></i>These links open in a new tab. CloudHub is not affiliated with any of these sites.</div>`;
-  for (const cat of ADULT_SITES) {
-    html += `<div class="adult-section-title"><span style="color:var(--red);">●</span> ${cat.cat}</div>`;
-    html += `<div class="adult-site-grid">`;
-    for (const s of cat.sites) {
-      html += `
-        <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="adult-site-card" style="border-color:${s.border}22;" onmouseover="this.style.borderColor='${s.border}'" onmouseout="this.style.borderColor='${s.border}22'">
-          <div class="adult-site-icon" style="background:${s.color};border:2px solid ${s.border}33;">${s.icon}</div>
-          <div class="adult-site-name">${s.name}</div>
-          <div class="adult-site-desc">${s.desc}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px;"><i class="fas fa-external-link-alt"></i> Opens new tab</div>
-        </a>`;
-    }
-    html += `</div>`;
-  }
-  area.innerHTML = html;
-}
-
-let adultSearchTimer = null;
-function debounceAdultSearch(val) {
-  clearTimeout(adultSearchTimer);
-  adultSearchTimer = setTimeout(() => runAdultSearch(val), 350);
-}
-
-async function runAdultSearch(query) {
-  const container = document.getElementById('adult-search-results');
-  if (!container) return;
-  if (!query.trim()) {
-    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:40px 20px;"><i class="fas fa-play-circle"></i><h2>Internal Player</h2><p>Search to find videos</p></div>`;
-    return;
-  }
-  container.innerHTML = `<div class="spinner" style="grid-column:1/-1;"></div>`;
-  // Search via TMDB with adult filter
-  const results = await tmdb('/search/multi', { query, include_adult: true });
-  const items = (results?.results||[]).filter(i => i.poster_path || i.backdrop_path).slice(0,20);
-  if (!items.length) {
-    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:40px 20px;"><i class="fas fa-search"></i><h2>No results</h2><p>Try a different search</p></div>`;
-    return;
-  }
-  container.innerHTML = items.map(i => buildCard(i, i.media_type || 'movie')).join('');
-}
-
-// ─── DOWNLOAD MODAL (CloudStream-style) ───
+// ─── INIT ───
+loadHome();
 function openDlModal(id, type, title, poster, rating, season, episode) {
   const isTV = type === 'tv';
   document.getElementById('dl-modal-title').textContent = title;
@@ -3675,34 +3363,7 @@ function copyShareLink() {
   } catch(e) {}
 })();
 
-// Override the loadPlayerPage function to handle the 'adult_internal' type
-const originalLoadPlayerPage = loadPlayerPage;
-loadPlayerPage = async function(params) {
-  if (params.type === 'adult_internal') {
-    const wrapper = document.getElementById('player-wrapper');
-    const infoEl = document.getElementById('player-info');
-    const t = document.getElementById('player-top-title');
-    const m = document.getElementById('player-top-meta');
-    if (t) t.textContent = params.title;
-    if (m) m.textContent = 'Internal Player';
-    const old = wrapper.querySelector('iframe, video');
-    if (old) { old.src = 'about:blank'; old.remove(); }
-    const iframe = document.createElement('iframe');
-    iframe.src = params.embedUrl;
-    iframe.allowFullscreen = true;
-    iframe.allow = 'autoplay; fullscreen';
-    iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
-    wrapper.appendChild(iframe);
-    infoEl.innerHTML = `
-      <div class="player-title">${params.title}</div>
-      <div class="player-meta"><span style="color:var(--red);font-weight:bold;">18+</span> · Internal Player</div>
-      <div class="player-actions">
-        <button class="btn btn-grey btn-sm" onclick="stopActivePlayer();history.back()"><i class="fas fa-arrow-left"></i> Back</button>
-      </div>`;
-    return;
-  }
-  return originalLoadPlayerPage(params);
-};
+
 
 // ─── INIT ───
 loadHome();
