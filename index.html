@@ -1254,9 +1254,38 @@ body {
 /* Watchlist added icon */
 .watchlist-icon.added { color: var(--red) !important; }
 
+/* ── PIN MODAL ── */
+.pin-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+.pin-dot.filled {
+  background: var(--red);
+  border-color: var(--red);
+}
+.pin-key {
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.pin-key:hover { background: var(--surface3); border-color: rgba(255,255,255,0.3); }
+.pin-key:empty { cursor: default; background: transparent; border-color: transparent; }
+
 
 
 /* ── DOWNLOAD MODAL ── */
+/* ── LANG MENU ── */
+.lang-opt:hover { background: rgba(255,255,255,0.07) !important; }
 #dl-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1470,7 +1499,6 @@ body {
     <div id="storage-info" style="padding:0 4% 16px;font-size:13px;color:var(--text2);"></div>
     <div class="history-grid" id="downloads-grid"></div>
   </div>
-
 </div><!-- #app -->
 
 <!-- SETTINGS OVERLAY + DRAWER -->
@@ -1482,11 +1510,35 @@ body {
   </div>
 
   <div class="settings-section">
-    <div class="settings-label">TMDB API Key</div>
+    <div class="settings-label">TMDB API Key <span style="font-size:10px;color:var(--text3);font-weight:400;">(for Movies &amp; Series)</span></div>
     <input class="settings-input" id="s-tmdb-key" type="password" placeholder="Paste your TMDB API v3 key…">
     <p style="font-size:11px;color:var(--text3);margin-top:6px;">Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--red);">themoviedb.org/settings/api</a></p>
     <button class="btn btn-grey btn-sm" style="margin-top:10px;width:100%;justify-content:center;" onclick="copyShareLink()"><i class="fas fa-share-alt"></i> Copy Share Link (send to friends)</button>
     <p style="font-size:11px;color:var(--text3);margin-top:6px;">Generates a link that auto-loads your key on your friend's device</p>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Anime API <span style="font-size:10px;color:var(--text3);font-weight:400;">(for Anime browsing &amp; info)</span></div>
+    <div style="background:rgba(70,211,105,0.08);border:1px solid rgba(70,211,105,0.25);border-radius:8px;padding:12px 14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="color:#46d369;font-size:16px;">✓</span>
+        <span style="font-size:13px;font-weight:700;color:#46d369;">Jikan (MyAnimeList API) — Free, No Key Needed</span>
+      </div>
+      <p style="font-size:12px;color:var(--text2);line-height:1.5;">CloudHub uses the <b>Jikan API</b> — an unofficial MyAnimeList (MAL) wrapper — to browse and search anime. It is completely free and requires <b>no registration or API key</b>. Just browse and enjoy.</p>
+      <a href="https://jikan.moe" target="_blank" style="font-size:11px;color:var(--red);margin-top:6px;display:inline-block;"><i class="fas fa-external-link-alt"></i> Learn more at jikan.moe</a>
+    </div>
+    <div class="settings-label" style="margin-top:4px;">Preferred Anime Player Source</div>
+    <select class="settings-select" id="s-anime-src" onchange="APP.settings.animeSrc=this.value;localStorage.setItem('ch_settings',JSON.stringify(APP.settings));showToast('Anime source saved')">
+      <option value="auto">🤖 Auto (Best Available)</option>
+      <option value="vidsrcme">VidSrc.me</option>
+      <option value="vidsrcxyz">VidSrc.xyz</option>
+      <option value="embedsu">EmbedSu</option>
+      <option value="vidsrcto">VidSrc.to</option>
+      <option value="2embed">2Embed</option>
+      <option value="autoembed">AutoEmbed</option>
+      <option value="yugen">YugenAnime</option>
+    </select>
+    <p style="font-size:11px;color:var(--text3);margin-top:6px;">If one source doesn't load, switch sources in the player panel.</p>
   </div>
 
   <div class="settings-section">
@@ -1533,11 +1585,6 @@ body {
       <span>Autoplay Next Episode</span>
       <button class="toggle-switch on" id="s-autoplay" onclick="this.classList.toggle('on')"></button>
     </div>
-    <div class="settings-toggle">
-      <span>HD Quality Preferred</span>
-      <button class="toggle-switch on" id="s-hd" onclick="this.classList.toggle('on')"></button>
-    </div>
-  </div>
 
   <div class="settings-section">
     <div class="settings-label">Default Player Source</div>
@@ -1566,7 +1613,6 @@ body {
     CloudHub v2.0 · Personal Use Only
   </div>
 </div>
-
 
 <!-- DOWNLOAD MODAL -->
 <div id="dl-modal-overlay" onclick="if(event.target===this)closeDlModal()">
@@ -1918,9 +1964,6 @@ async function loadHome() {
   html += buildRow('⭐ Top Rated Movies', top_movies?.results, 'movie', 'movies');
   html += buildRow('📺 Popular Series', pop_series?.results, 'tv', 'series');
 
-  // Hindi Cartoons row (static)
-  html += buildRow('🎌 Classic Hindi Cartoons', HINDI_CARTOONS, 'hindi', '');
-
   // Anime row — using Jikan API (free, always-on)
   const animeData = await jikan('/top/anime', { filter: 'airing', limit: 20 });
   if (animeData?.data) {
@@ -1949,10 +1992,6 @@ function loadHomeWithoutKey() {
       <a href="https://www.themoviedb.org/signup" target="_blank" class="btn btn-grey btn-sm"><i class="fas fa-external-link-alt"></i> Get Key</a>
       <button class="btn btn-red btn-sm" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
     </div>
-  </div>
-  <div class="row-section">
-    <div class="row-header"><h2 class="row-title">🎌 Classic Hindi Cartoons</h2></div>
-    <div class="row-scroll">${HINDI_CARTOONS.map(i => buildCard(i,'hindi')).join('')}</div>
   </div>`;
 }
 
@@ -2235,14 +2274,6 @@ async function loadDetailPage({ id, type }) {
     return;
   }
 
-  if (type === 'hindi') {
-    const hc = HINDI_CARTOONS.find(c => c.id == id);
-    if (hc) {
-      await loadTMDBDetail(hc.tmdbId || id, hc.type || 'tv', el, 'hindi', hc);
-      return;
-    }
-  }
-
   const endpoint = type === 'tv' ? `/tv/${id}` : `/movie/${id}`;
   const [detail, credits, videos] = await Promise.all([
     tmdb(endpoint),
@@ -2487,90 +2518,126 @@ function openPlayer(id, type, season = 1, episode = 1) {
   navigate('player', { id, type, season, episode, lang });
 }
 
-// ─── LANGUAGE SWITCHER (Netflix-style — in player controls, not a popup) ───
+// ─── LANGUAGE SWITCHER ───
+// Store current player context globally so the lang menu always has correct data
+APP._playerCtx = null;
+
 function showLangMenu(id, type, season, episode, currentLang) {
   const existing = document.getElementById('lang-menu-dropdown');
   if (existing) { existing.remove(); return; }
 
+  // Always update the global context when menu opens
+  APP._playerCtx = { id: String(id), type: String(type), season: String(season), episode: String(episode) };
+
   const langs = [
-    { key: 'original', label: 'Original Language',  flag: '🎬', sub: 'Native audio track' },
-    { key: 'hindi',    label: 'हिंदी (Hindi)',      flag: '🇮🇳', sub: 'Hindi dubbed version' },
-    { key: 'english',  label: 'English',             flag: '🇬🇧', sub: 'English audio track' },
-    { key: 'bengali',  label: 'বাংলা (Bengali)',    flag: '🇧🇩', sub: 'Bengali dubbed version' },
-    { key: 'tamil',    label: 'தமிழ் (Tamil)',      flag: '🎭', sub: 'Tamil dubbed version' },
-    { key: 'telugu',   label: 'తెలుగు (Telugu)',    flag: '🎭', sub: 'Telugu dubbed version' },
-    { key: 'spanish',  label: 'Español (Spanish)',   flag: '🇪🇸', sub: 'Spanish dubbed version' },
-    { key: 'french',   label: 'Français (French)',   flag: '🇫🇷', sub: 'French dubbed version' },
-    { key: 'arabic',   label: 'عربي (Arabic)',       flag: '🇸🇦', sub: 'Arabic dubbed version' },
+    { key: 'original', label: 'Original Language', flag: '🎬', sub: 'Native audio track' },
+    { key: 'hindi',    label: 'हिंदी (Hindi)',     flag: '🇮🇳', sub: 'Hindi dubbed' },
+    { key: 'english',  label: 'English',            flag: '🇬🇧', sub: 'English audio' },
+    { key: 'bengali',  label: 'বাংলা (Bengali)',   flag: '🇧🇩', sub: 'Bengali dubbed' },
+    { key: 'tamil',    label: 'தமிழ் (Tamil)',     flag: '🎭', sub: 'Tamil dubbed' },
+    { key: 'telugu',   label: 'తెలుగు (Telugu)',   flag: '🎭', sub: 'Telugu dubbed' },
+    { key: 'spanish',  label: 'Español',            flag: '🇪🇸', sub: 'Spanish dubbed' },
+    { key: 'french',   label: 'Français',           flag: '🇫🇷', sub: 'French dubbed' },
+    { key: 'arabic',   label: 'عربي (Arabic)',      flag: '🇸🇦', sub: 'Arabic dubbed' },
   ];
 
   const menu = document.createElement('div');
   menu.id = 'lang-menu-dropdown';
-  menu.style.cssText = `position:absolute;bottom:100%;right:0;margin-bottom:8px;background:var(--surface);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:8px;min-width:260px;box-shadow:0 12px 40px rgba(0,0,0,0.8);z-index:100;animation:fadeIn 0.15s ease;`;
+  menu.style.cssText = `position:absolute;bottom:calc(100% + 8px);left:0;background:var(--surface);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:8px;min-width:240px;box-shadow:0 12px 40px rgba(0,0,0,0.85);z-index:9999;`;
   menu.innerHTML = `
-    <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:4px 8px 8px;">Audio / Dub Language</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:4px 8px 8px;">🌐 Audio / Dub Language</div>
     ${langs.map(l => `
-      <button onclick="switchPlayerLang('${id}','${type}','${season}','${episode}','${l.key}',this)" style="display:flex;align-items:center;gap:12px;width:100%;background:${l.key===currentLang?'rgba(229,9,20,0.15)':'transparent'};border:1px solid ${l.key===currentLang?'rgba(229,9,20,0.4)':'transparent'};color:var(--text);padding:10px 12px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;margin-bottom:4px;" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='${l.key===currentLang?'rgba(229,9,20,0.15)':'transparent'}'">
-        <span style="font-size:18px;">${l.flag}</span>
-        <div style="text-align:left;">
-          <div>${l.label} ${l.key===currentLang?'<span style="font-size:10px;color:var(--red);font-weight:700;margin-left:4px;">✓ Active</span>':''}</div>
-          <div style="font-size:11px;color:var(--text2);font-weight:400;">${l.sub}</div>
+      <div class="lang-opt" data-lang="${l.key}" style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:7px;cursor:pointer;margin-bottom:3px;background:${l.key===currentLang?'rgba(229,9,20,0.15)':'transparent'};border:1px solid ${l.key===currentLang?'rgba(229,9,20,0.4)':'transparent'};">
+        <span style="font-size:18px;line-height:1;">${l.flag}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${l.label}${l.key===currentLang?' <span style="font-size:10px;color:var(--red);">✓</span>':''}</div>
+          <div style="font-size:11px;color:var(--text2);">${l.sub}</div>
         </div>
-      </button>`).join('')}
-    <p style="font-size:10px;color:var(--text3);padding:6px 8px 2px;margin:0;">Languages only appear when available for this title</p>
+      </div>`).join('')}
+    <p style="font-size:10px;color:var(--text3);padding:6px 8px 2px;margin:0;line-height:1.4;">Dubbed versions depend on availability from the streaming source</p>
   `;
+
+  // Use event delegation on the menu — avoids onclick attribute issues entirely
+  menu.addEventListener('click', function(e) {
+    const opt = e.target.closest('.lang-opt');
+    if (!opt) return;
+    const lang = opt.getAttribute('data-lang');
+    menu.remove();
+    const ctx = APP._playerCtx;
+    if (!ctx) return;
+    doLangSwitch(ctx.id, ctx.type, ctx.season, ctx.episode, lang);
+  });
 
   // Close on outside click
   setTimeout(() => {
     document.addEventListener('click', function closeLang(e) {
-      if (!menu.contains(e.target) && e.target.id !== 'lang-toggle-btn') {
+      if (!menu.contains(e.target) && !e.target.closest('#lang-toggle-btn')) {
         menu.remove();
         document.removeEventListener('click', closeLang);
       }
     });
-  }, 50);
+  }, 80);
 
-  // Attach to the lang button's parent
   const btn = document.getElementById('lang-toggle-btn');
   if (btn) {
-    btn.parentElement.style.position = 'relative';
-    btn.parentElement.appendChild(menu);
+    const wrap = btn.closest('[style*="position:relative"]') || btn.parentElement;
+    wrap.style.position = 'relative';
+    wrap.appendChild(menu);
   }
 }
 
-function switchPlayerLang(id, type, season, episode, lang, triggerEl) {
-  const menu = document.getElementById('lang-menu-dropdown');
-  if (menu) menu.remove();
+function doLangSwitch(id, type, season, episode, lang) {
   APP.playerLang = lang;
   APP.settings.preferredLang = lang;
   localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
 
-  // Reload the current iframe with new language
+  const LANG_CODES = { original:null, hindi:'hi', english:'en', bengali:'bn', tamil:'ta', telugu:'te', spanish:'es', french:'fr', arabic:'ar' };
+  const lc = LANG_CODES[lang];
   const sourcePrio = APP.settings.sourcePrio || 'vidsrcme';
+
+  // For non-original languages, use autoembed (reliable multi-lang) or multiembed
+  let embedUrl;
+  if (lc && lang !== 'original') {
+    const isTV = type === 'tv';
+    // Try autoembed first (good multi-lang support), then multiembed as fallback
+    embedUrl = isTV
+      ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}?lang=${lc}`
+      : `https://player.autoembed.cc/embed/movie/${id}?lang=${lc}`;
+  } else {
+    embedUrl = getEmbedUrl(id, type, season, episode, sourcePrio, 'original');
+  }
+
   const wrapper = document.getElementById('player-wrapper');
   const old = wrapper.querySelector('iframe, video');
-  if (old) old.remove();
+  if (old) { old.src = 'about:blank'; old.remove(); }
   const iframe = document.createElement('iframe');
-  iframe.src = getEmbedUrl(id, type, season, episode, sourcePrio, lang);
+  iframe.src = embedUrl;
   iframe.allowFullscreen = true;
   iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
   iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
   wrapper.appendChild(iframe);
 
-  const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English', bengali: '🇧🇩 Bengali', tamil: '🎭 Tamil', telugu: '🎭 Telugu', spanish: '🇪🇸 Spanish', french: '🇫🇷 French', arabic: '🇸🇦 Arabic' };
-  showToast(`Audio: ${langLabels[lang] || lang}`);
+  const langLabels = { original:'🎬 Original', hindi:'🇮🇳 Hindi', english:'🇬🇧 English', bengali:'🇧🇩 Bengali', tamil:'🎭 Tamil', telugu:'🎭 Telugu', spanish:'🇪🇸 Spanish', french:'🇫🇷 French', arabic:'🇸🇦 Arabic' };
+  showToast(`🔊 Audio: ${langLabels[lang] || lang}`);
 
-  // Update active source button label to reflect current lang
   const langBtn = document.getElementById('lang-toggle-btn');
-  if (langBtn) langBtn.innerHTML = `<i class="fas fa-language"></i> ${langLabels[lang]||lang}`;
+  if (langBtn) langBtn.innerHTML = `<i class="fas fa-language"></i> ${langLabels[lang] || lang}`;
 
-  // Update source panel's onclick to use new lang
+  // Update source buttons so they also pass the new lang
   document.querySelectorAll('.source-btn[data-source]').forEach(b => {
     const src = b.getAttribute('data-source');
     b.onclick = () => switchSource(id, type, season, episode, src, b, lang);
   });
 }
+
+// Keep old name for backwards compat with any inline calls
+function switchPlayerLang(id, type, season, episode, lang) {
+  APP._playerCtx = { id: String(id), type: String(type), season: String(season), episode: String(episode) };
+  doLangSwitch(id, type, season, episode, lang);
+}
+
+
 
 function playAnimeEpisode(epId, title, animeId) {
   navigate('player', { type: 'anime', epId, title, animeId });
@@ -2625,45 +2692,91 @@ async function loadPlayerPage(params) {
   }
 
   if (params.type === 'anime') {
-    // Use embed players with MAL ID — much more reliable than Consumet streams
     const malId = params.malId || params.animeId || params.epId;
-    const epNum = params.episode || 1;
+    const epNum = parseInt(params.episode) || 1;
     const title = params.title || 'Anime';
     setTopBar(title, `Episode ${epNum}`);
 
-    // Anime embed sources using MAL ID
-    const animeSources = [
-      { key: 'animekai',    label: 'AnimeKai',    url: `https://animekai.to/embed/mal/${malId}?ep=${epNum}` },
-      { key: 'aniwatch',    label: 'AniWatch',    url: `https://aniwatch.to/embed-1?id=${malId}&ep=${epNum}` },
-      { key: '9anime',      label: '9Anime',      url: `https://9anime.to/ajax/anime/embed?id=${malId}&ep=${epNum}` },
-      { key: 'yugen',       label: 'YugenAnime',  url: `https://yugenanime.tv/embed/?mal=${malId}&ep=${epNum}` },
-      { key: 'animepahe',   label: 'AnimePahe',   url: `https://animepahe.ru/embed/${malId}` },
-      { key: 'vidsrc_anime',label: 'VidSrc',      url: `https://vidsrc.me/embed/tv?mal=${malId}&episode=${epNum}` },
-    ];
+    // Store globally so episode nav + source switches always have fresh params
+    APP.currentAnime = { malId, epNum, title };
 
-    injectPlayer(buildIframe(animeSources[0].url));
+    // Step 1: Try to find a TMDB ID by searching the title — TMDB embeds are far more reliable
+    let tmdbId = null;
+    const cleanTitle = title.replace(/\s*[-–]\s*(Ep|Episode)\s*\d+.*/i, '').trim();
+    if (APP.tmdbKey && cleanTitle) {
+      try {
+        const res = await tmdb('/search/tv', { query: cleanTitle });
+        // Prefer animation genre (16) matches, fall back to first result
+        const match = (res?.results || []).find(r => r.genre_ids?.includes(16))
+                   || (res?.results || [])[0];
+        if (match) tmdbId = match.id;
+      } catch(e) {}
+    }
 
-    const animeSourceBtns = animeSources.map((s,i) =>
-      `<button class="source-btn ${i===0?'active':''}" onclick="switchAnimeSource('${s.url}',this)">${s.label}</button>`
-    ).join('');
+    APP.currentAnime.tmdbId = tmdbId;
+
+    // Step 2: Build source list — TMDB-based sources first (most reliable), MAL-based as fallback
+    function buildAnimeSrcList(tid, mid, ep) {
+      if (tid) {
+        return [
+          { key: 'vidsrcme',  label: 'VidSrc.me',   url: `https://vidsrc.me/embed/tv?tmdb=${tid}&season=1&episode=${ep}` },
+          { key: 'vidsrcxyz', label: 'VidSrc.xyz',  url: `https://vidsrc.xyz/embed/tv?tmdb=${tid}&season=1&episode=${ep}` },
+          { key: 'embedsu',   label: 'EmbedSu',     url: `https://embed.su/embed/tv/${tid}/1/${ep}` },
+          { key: 'vidsrcto',  label: 'VidSrc.to',   url: `https://vidsrc.to/embed/tv/${tid}/1/${ep}` },
+          { key: '2embed',    label: '2Embed',       url: `https://www.2embed.cc/embedtv/${tid}&s=1&e=${ep}` },
+          { key: 'autoembed', label: 'AutoEmbed',    url: `https://player.autoembed.cc/embed/tv/${tid}/1/${ep}` },
+          { key: 'yugen',     label: 'YugenAnime',   url: `https://yugenanime.tv/embed/?mal=${mid}&ep=${ep}` },
+        ];
+      }
+      // No TMDB match — MAL-only fallback
+      return [
+        { key: 'vidsrcme',    label: 'VidSrc.me',  url: `https://vidsrc.me/embed/tv?mal=${mid}&episode=${ep}` },
+        { key: 'vidsrcxyz',   label: 'VidSrc.xyz', url: `https://vidsrc.xyz/embed/tv?mal=${mid}&episode=${ep}` },
+        { key: 'yugen',       label: 'YugenAnime', url: `https://yugenanime.tv/embed/?mal=${mid}&ep=${ep}` },
+        { key: 'animepahe',   label: 'AnimePahe',  url: `https://animepahe.ru/embed/${mid}` },
+      ];
+    }
+
+    const sources = buildAnimeSrcList(tmdbId, malId, epNum);
+    // Respect user's preferred anime source if set
+    const prefSrc = APP.settings.animeSrc;
+    let startIdx = 0;
+    if (prefSrc && prefSrc !== 'auto') {
+      const pi = sources.findIndex(s => s.key === prefSrc);
+      if (pi >= 0) startIdx = pi;
+    }
+
+    injectPlayer(buildIframe(sources[startIdx].url));
+
+    const matchBadge = tmdbId
+      ? `<span style="color:#46d369;font-size:12px;"><i class="fas fa-check-circle"></i> TMDB Matched</span>`
+      : `<span style="color:var(--amber);font-size:12px;"><i class="fas fa-exclamation-triangle"></i> MAL Fallback</span>`;
 
     infoEl.innerHTML = `
-      <div class="player-title">${title}</div>
-      <div class="player-meta">Anime · Episode ${epNum} · <span style="color:#46d369;">Streaming</span></div>
+      <div class="player-title">${cleanTitle}</div>
+      <div class="player-meta" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span>Anime · Episode ${epNum}</span>${matchBadge}
+      </div>
       <div class="player-actions">
         <button class="btn btn-grey btn-sm" onclick="stopActivePlayer();history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+        ${epNum > 1 ? `<button class="btn btn-grey btn-sm" onclick="switchAnimeEp(${epNum-1})"><i class="fas fa-step-backward"></i> Prev</button>` : ''}
+        <button class="btn btn-grey btn-sm" onclick="switchAnimeEp(${epNum+1})"><i class="fas fa-step-forward"></i> Next Ep</button>
       </div>
       <div class="source-switcher">
-        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source if not loading</div>
-        <div class="source-btns">${animeSourceBtns}</div>
+        <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source if not loading${tmdbId ? ' — TMDB sources listed first' : ''}</div>
+        <div class="source-btns">${sources.map((s,i) => `<button class="source-btn ${i===startIdx?'active':''}" onclick="switchAnimeSource('${s.url}',this)">${s.label}</button>`).join('')}</div>
       </div>`;
-    saveToHistory({ id: malId, type: 'anime', title, poster: '', rating: '' });
+
+    saveToHistory({ id: malId, type: 'anime', title: cleanTitle, poster: '', rating: '' });
     return;
   }
 
   // ── MOVIE / TV ──
   const { id, type, season, episode, lang } = params;
   const sourcePrio = APP.settings.sourcePrio || 'vidsrcme';
+
+  // Store for lang menu use
+  APP._playerCtx = { id: String(id), type: String(type), season: String(season || 1), episode: String(episode || 1) };
 
   injectPlayer(buildIframe(getEmbedUrl(id, type, season, episode, sourcePrio, lang)));
 
@@ -2685,10 +2798,11 @@ async function loadPlayerPage(params) {
     ];
     const langLabels = { original: '🎬 Original', hindi: '🇮🇳 Hindi', english: '🇬🇧 English', bengali: '🇧🇩 Bengali', tamil: '🎭 Tamil', telugu: '🎭 Telugu', spanish: '🇪🇸 Spanish', french: '🇫🇷 French', arabic: '🇸🇦 Arabic' };
     const currentLangLabel = langLabels[lang || 'original'] || '🎬 Original';
+    const currentLang = lang || 'original';
     return `
       <div class="player-actions" style="margin-top:4px;">
         <div style="position:relative;display:inline-block;">
-          <button id="lang-toggle-btn" class="btn btn-grey btn-sm" onclick="showLangMenu('${id}','${type}','${season}','${episode}','${lang||'original'}')">
+          <button id="lang-toggle-btn" class="btn btn-grey btn-sm" onclick="showLangMenu('${id}','${type}','${season||1}','${episode||1}','${currentLang}')">
             <i class="fas fa-language"></i> ${currentLangLabel}
           </button>
         </div>
@@ -2696,7 +2810,7 @@ async function loadPlayerPage(params) {
       <div class="source-switcher">
         <div class="source-switcher-label"><i class="fas fa-server"></i> Switch Source — try another if buffering</div>
         <div class="source-btns">
-          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" data-source="${s.key}" onclick="switchSource('${id}','${type}','${season}','${episode}','${s.key}',this,'${lang||'original'}')">${s.label}</button>`).join('')}
+          ${sources.map(s => `<button class="source-btn ${s.key === sourcePrio ? 'active' : ''}" data-source="${s.key}" onclick="switchSource('${id}','${type}','${season||1}','${episode||1}','${s.key}',this,'${currentLang}')">${s.label}</button>`).join('')}
         </div>
       </div>`;
   }
@@ -2839,6 +2953,13 @@ function switchSource(id, type, season, episode, source, btn, lang = 'original')
   iframe.style.cssText = 'width:100%;aspect-ratio:16/9;border:none;display:block;';
   wrapper.appendChild(iframe);
   showToast(`▶ Switched to ${btn.textContent}`);
+}
+
+function switchAnimeEp(ep) {
+  const a = APP.currentAnime;
+  if (!a) return;
+  if (ep < 1) ep = 1;
+  navigate('player', { type: 'anime', malId: a.malId, title: a.title, episode: ep });
 }
 
 function switchAnimeSource(url, btn) {
@@ -3089,11 +3210,13 @@ function openSettings() {
   document.getElementById('settings-drawer').classList.add('open');
   // Load current values
   document.getElementById('s-tmdb-key').value = APP.tmdbKey;
-  document.getElementById('s-sub-lang').value = APP.settings.subLang;
+  document.getElementById('s-sub-lang').value = APP.settings.subLang || 'off';
   document.getElementById('s-source-prio').value = APP.settings.sourcePrio || 'vidsrcme';
   document.getElementById('s-lang-pref').value = APP.settings.preferredLang || 'original';
   document.getElementById('s-autoplay').classList.toggle('on', APP.settings.autoplay !== false);
   setAnimePref(APP.settings.animePref || 'sub', true);
+  const animeSrcEl = document.getElementById('s-anime-src');
+  if (animeSrcEl) animeSrcEl.value = APP.settings.animeSrc || 'auto';
 }
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('open');
@@ -3115,7 +3238,6 @@ function saveSettings() {
   APP.settings.hd = document.getElementById('s-hd').classList.contains('on');
   localStorage.setItem('ch_settings', JSON.stringify(APP.settings));
 }
-
 
 function setAnimePref(pref, silent = false) {
   APP.settings.animePref = pref;
@@ -3194,22 +3316,6 @@ const GENRE_MAP = {
   10765:'Sci-Fi & Fantasy',10766:'Soap',10767:'Talk',10768:'War & Politics'
 };
 
-// ─── HINDI CARTOONS (Static) ───
-const HINDI_CARTOONS = [
-  { id: 'doraemon',     tmdbId: 10511, type: 'tv', title: 'Doraemon',        image: 'https://image.tmdb.org/t/p/w342/bjXacJT8u8bVCRCMlNTX1BCTWI2.jpg',   vote_average: 8.2, release_date: '1979' },
-  { id: 'shinchan',     tmdbId: 2643,  type: 'tv', title: 'Shinchan',        image: 'https://image.tmdb.org/t/p/w342/t1dSfKLxLuWMqHaqEf9eUiRanFv.jpg',   vote_average: 8.5, release_date: '1992' },
-  { id: 'ninjahat',     tmdbId: 14544, type: 'tv', title: 'Ninja Hattori',   image: 'https://image.tmdb.org/t/p/w342/qUHbDGeMSUwBiLQCVr8RHqBolDy.jpg',   vote_average: 8.0, release_date: '1981' },
-  { id: 'motupatlu',    tmdbId: 63990, type: 'tv', title: 'Motu Patlu',      image: 'https://image.tmdb.org/t/p/w342/7yMTT9yBcEzEPdw8RNH7k3yiDfE.jpg',   vote_average: 7.5, release_date: '2012' },
-  { id: 'chhotabheem',  tmdbId: 36361, type: 'tv', title: 'Chhota Bheem',    image: 'https://image.tmdb.org/t/p/w342/yNeaRvLVRVPAihnSRWWXHjPxQNe.jpg',   vote_average: 8.1, release_date: '2008' },
-  { id: 'robotboy',     tmdbId: 11690, type: 'tv', title: 'Roll No. 21',     image: 'https://image.tmdb.org/t/p/w342/mXyQGHx9YolbhkYEjM0nBoleFHT.jpg',   vote_average: 7.8, release_date: '2009' },
-  { id: 'nobita',       tmdbId: 10511, type: 'tv', title: 'Nobita & Friends', image: 'https://image.tmdb.org/t/p/w342/8WBSguwjYJCkwuuoJPbQimN6Hlg.jpg',  vote_average: 8.0, release_date: '2005' },
-  { id: 'krishna',      tmdbId: 0,     type: 'tv', title: 'Little Krishna',  image: 'https://image.tmdb.org/t/p/w342/xzLhOvxCWRUHnJmr7T9aXmrqyDu.jpg',   vote_average: 8.3, release_date: '2009' },
-  { id: 'tenali',       tmdbId: 0,     type: 'tv', title: 'Tenali Rama',     image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Tenali+Rama',        vote_average: 7.6, release_date: '2010' },
-  { id: 'chulbulbheem', tmdbId: 0,     type: 'tv', title: 'Chulbul',         image: 'https://placehold.co/160x240/1a1a1a/FF6D00?text=Chulbul',            vote_average: 7.2, release_date: '2011' },
-  { id: 'gadget',       tmdbId: 1405,  type: 'tv', title: 'Inspector Gadget', image: 'https://image.tmdb.org/t/p/w342/zjFUOHPNnAZbkANKn4c2ZjxD0cA.jpg',  vote_average: 7.5, release_date: '1983' },
-  { id: 'tom_jerry',    tmdbId: 516,   type: 'tv', title: 'Tom & Jerry',     image: 'https://image.tmdb.org/t/p/w342/fev8UFNFFYsD5q7AcYS8LyTzqwl.jpg',   vote_average: 8.4, release_date: '1940' },
-];
-
 // ─── SERVICE WORKER ───
 if ('serviceWorker' in navigator) {
   const swCode = `
@@ -3263,8 +3369,7 @@ document.head.appendChild(manifestLink);
 
 
 
-// ─── INIT ───
-loadHome();
+// ─── DOWNLOAD MODAL (CloudStream-style) ───
 function openDlModal(id, type, title, poster, rating, season, episode) {
   const isTV = type === 'tv';
   document.getElementById('dl-modal-title').textContent = title;
@@ -3362,8 +3467,6 @@ function copyShareLink() {
     }
   } catch(e) {}
 })();
-
-
 
 // ─── INIT ───
 loadHome();
